@@ -1,0 +1,23 @@
+# ============================================================================
+# BUS TICKET SYSTEM - Python Dependencies
+# CENG 301 Database Systems Project
+# ============================================================================
+
+# Database Connection
+pyodbc>=4.0.39
+
+# Web Framework
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+
+# Session Management
+Flask-Session>=0.5.0
+
+# Password Hashing (alternative to manual SHA-256)
+werkzeug>=3.0.0
+
+# Date/Time utilities
+python-dateutil>=2.8.2
+
+# Environment variables (optional)
+python-dotenv>=1.0.0

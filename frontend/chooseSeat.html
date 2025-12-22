@@ -599,382 +599,355 @@
 </div>
 
 <script>
-    // ===== CONFIGURATION =====
-    const CONFIG = {
-        seatPrice: 350,
-        maxSeats: 5,
-        userCredit: 1500,
-        coupons: {
-            'DISCOUNT10': 10,
-            'DISCOUNT20': 20,
-            'SUMMER25': 15
-        }
-    };
-
-    // ===== STATE MANAGEMENT =====
-    let selectedSeats = [];
+    // ===== API CONFIGURATION =====
+    const API_URL = 'http://localhost:5000/api';
+    
+    // ===== STATE =====
+    let tripData = null;
+    let seatsData = [];
+    let selectedSeats = []; // {seatId, seatNumber}
     let discountRate = 0;
+    let appliedCouponCode = '';
+    let userCredit = 0;
+    let seatPrice = 350;
 
-    // ===== SERVICE DATA MANAGEMENT =====
-    class ServiceManager {
-        static loadServiceData() {
-            const serviceData = localStorage.getItem('selectedService');
-            if (!serviceData) return;
+    // ===== CHECK LOGIN =====
+    function checkLogin() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        if (!isLoggedIn) {
+            alert('Please login to book tickets.');
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    }
 
+    // ===== LOAD TRIP DATA =====
+    async function loadTripData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tripId = urlParams.get('trip');
+        
+        // Try from localStorage first
+        const savedTrip = localStorage.getItem('selectedTrip');
+        if (savedTrip) {
+            tripData = JSON.parse(savedTrip);
+            seatPrice = tripData.Price || 350;
+            updateTripDisplay();
+        }
+        
+        if (tripId) {
             try {
-                const data = JSON.parse(serviceData);
-                this.updateServiceDetails(data);
+                const response = await fetch(`${API_URL}/trips/${tripId}`, {credentials: 'include'});
+                const data = await response.json();
+                if (data.success) {
+                    tripData = data.trip;
+                    seatPrice = tripData.Price || 350;
+                    updateTripDisplay();
+                    loadSeats(tripId);
+                }
             } catch (error) {
-                console.error('Error parsing service data:', error);
-            }
-        }
-
-        static updateServiceDetails(data) {
-            this.updateRouteTimes(data);
-            this.updateLocations(data);
-            this.updatePrice(data);
-            this.updateDate(data);
-        }
-
-        static updateRouteTimes(data) {
-            const departureTime = document.querySelector('.departure-time');
-            const arrivalTime = document.querySelector('.arrival-time');
-            
-            if (departureTime) {
-                departureTime.textContent = data.departureTime;
-            }
-            if (arrivalTime) {
-                arrivalTime.textContent = data.arrivalTime;
-            }
-        }
-
-        static updateLocations(data) {
-            const locations = document.querySelectorAll('.route div:last-child');
-            if (locations.length >= 2) {
-                locations[0].textContent = data.departureCity;
-                locations[1].textContent = data.arrivalCity;
-            }
-        }
-
-        static updatePrice(data) {
-            const priceElement = document.querySelector('.price');
-            if (priceElement) {
-                priceElement.textContent = data.price;
-            }
-        }
-
-        static updateDate(data) {
-            if (!data.date) return;
-            
-            const dateElement = document.querySelector('.date-info');
-            if (dateElement) {
-                const formattedDate = new Date(data.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-                dateElement.textContent = formattedDate;
+                console.error('Error loading trip:', error);
             }
         }
     }
 
-    // ===== SEAT SELECTION MANAGEMENT =====
-    class SeatManager {
-        static initializeSeatSelection() {
-            const availableSeats = document.querySelectorAll('.seat:not(.occupied):not(.aisle)');
-            availableSeats.forEach(seat => {
-                seat.addEventListener('click', this.handleSeatClick.bind(this));
-            });
+    // ===== UPDATE TRIP DISPLAY =====
+    function updateTripDisplay() {
+        if (!tripData) return;
+        
+        const companyName = document.querySelector('.service-header h3');
+        if (companyName) companyName.textContent = tripData.CompanyName || 'Metro Turizm';
+        
+        const departureTime = document.querySelector('.departure-time');
+        if (departureTime) departureTime.textContent = (tripData.DepartureTime || '').substring(0, 5);
+        
+        const arrivalTime = document.querySelector('.arrival-time');
+        if (arrivalTime) arrivalTime.textContent = (tripData.ArrivalTime || '').substring(0, 5);
+        
+        const routeDivs = document.querySelectorAll('.route > div');
+        if (routeDivs.length >= 3) {
+            routeDivs[0].innerHTML = `<div>${tripData.DepartureCity || 'Istanbul'}</div>`;
+            routeDivs[2].innerHTML = `<div>${tripData.ArrivalCity || 'Ankara'}</div>`;
         }
+        
+        const priceEl = document.querySelector('.service-details-small div:last-child div:first-child');
+        if (priceEl) priceEl.textContent = `${tripData.Price || 350} TL`;
+        
+        document.getElementById('base-price').textContent = `${seatPrice} TL`;
+    }
 
-        static handleSeatClick(event) {
-            const seatElement = event.target;
-            const seatNum = seatElement.dataset.seat;
+    // ===== LOAD USER DATA =====
+    function loadUserData() {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        userCredit = user.credit_balance || 0;
+        
+        const userInfo = document.querySelector('.user-info');
+        if (userInfo) {
+            userInfo.innerHTML = `
+                <span>${user.first_name || 'User'} ${user.last_name || ''}</span>
+                <div class="credit-badge">💳 ${userCredit.toLocaleString()} TL</div>
+            `;
+        }
+        
+        const creditInfo = document.querySelector('.info-message:last-child');
+        if (creditInfo) {
+            creditInfo.textContent = `Your current credit: ${userCredit.toLocaleString()} TL`;
+        }
+    }
 
-            console.log('Seat clicked:', seatNum, 'Currently selected:', selectedSeats.length);
-
-            if (seatElement.classList.contains('selected')) {
-                this.deselectSeat(seatElement, seatNum);
-            } else {
-                this.selectSeat(seatElement, seatNum);
+    // ===== LOAD SEATS FROM API =====
+    async function loadSeats(tripId) {
+        try {
+            const response = await fetch(`${API_URL}/trips/${tripId}/seats`, {credentials: 'include'});
+            const data = await response.json();
+            
+            if (data.success) {
+                seatsData = data.seats;
+                renderSeats();
             }
-
-            console.log('After seat selection - selectedSeats:', selectedSeats.length);
-            SummaryManager.updateSummary();
+        } catch (error) {
+            console.error('Error loading seats:', error);
         }
+    }
 
-        static selectSeat(seatElement, seatNum) {
-            if (selectedSeats.length >= CONFIG.maxSeats) {
-                alert(`You can select up to ${CONFIG.maxSeats} seats!`);
+    // ===== RENDER SEATS =====
+    function renderSeats() {
+        const seatsGrid = document.querySelector('.seats-grid');
+        if (!seatsGrid || seatsData.length === 0) return;
+        
+        seatsGrid.innerHTML = '';
+        
+        // Group by row
+        const rows = {};
+        seatsData.forEach(seat => {
+            if (!rows[seat.SeatRow]) rows[seat.SeatRow] = [];
+            rows[seat.SeatRow].push(seat);
+        });
+        
+        // Render each row
+        Object.keys(rows).sort((a, b) => a - b).forEach(row => {
+            const rowSeats = rows[row].sort((a, b) => a.SeatColumn.localeCompare(b.SeatColumn));
+            
+            // A, B seats (left)
+            rowSeats.filter(s => ['A', 'B'].includes(s.SeatColumn)).forEach(seat => {
+                seatsGrid.appendChild(createSeatElement(seat));
+            });
+            
+            // Aisle
+            const aisle = document.createElement('div');
+            aisle.className = 'seat aisle';
+            seatsGrid.appendChild(aisle);
+            
+            // C, D seats (right)
+            rowSeats.filter(s => ['C', 'D'].includes(s.SeatColumn)).forEach(seat => {
+                seatsGrid.appendChild(createSeatElement(seat));
+            });
+        });
+    }
+
+    function createSeatElement(seat) {
+        const div = document.createElement('div');
+        div.className = 'seat';
+        div.dataset.seatId = seat.SeatID;
+        div.dataset.seatNumber = seat.SeatNumber;
+        div.textContent = seat.SeatNumber;
+        
+        if (seat.SeatStatus === 'Occupied') {
+            div.classList.add('occupied');
+        } else {
+            div.addEventListener('click', () => toggleSeat(div, seat));
+        }
+        
+        return div;
+    }
+
+    // ===== TOGGLE SEAT SELECTION =====
+    function toggleSeat(element, seat) {
+        const index = selectedSeats.findIndex(s => s.seatId === seat.SeatID);
+        
+        if (index > -1) {
+            selectedSeats.splice(index, 1);
+            element.classList.remove('selected');
+        } else {
+            if (selectedSeats.length >= 5) {
+                alert('You can select up to 5 seats!');
                 return;
             }
-
-            console.log('Selecting seat:', seatNum);
-            seatElement.classList.add('selected');
-            selectedSeats.push(seatNum);
-            console.log('Seat selected. Total selected:', selectedSeats.length);
+            selectedSeats.push({seatId: seat.SeatID, seatNumber: seat.SeatNumber});
+            element.classList.add('selected');
         }
-
-        static deselectSeat(seatElement, seatNum) {
-            console.log('Deselecting seat:', seatNum);
-            seatElement.classList.remove('selected');
-            selectedSeats = selectedSeats.filter(s => s !== seatNum);
-            console.log('Seat deselected. Total selected:', selectedSeats.length);
-        }
+        
+        updateSummary();
     }
 
-    // ===== SUMMARY MANAGEMENT =====
-    class SummaryManager {
-        static updateSummary() {
-            this.updateSeatsList();
-            this.updatePurchaseButton();
-            this.updatePricing();
-            this.updateCouponSection();
-        }
-
-        static updateCouponSection() {
-            const couponInput = document.getElementById('coupon-input');
-            const couponButton = document.querySelector('.btn-apply-coupon');
-            
-            console.log('Updating coupon section - selectedSeats:', selectedSeats.length, 'discountRate:', discountRate);
-            
-            if (selectedSeats.length === 0) {
-                console.log('No seats selected - disabling coupon section');
-                if (couponInput) {
-                    couponInput.disabled = true;
-                    couponInput.placeholder = 'Select seats first to apply coupon';
-                }
-                if (couponButton) {
-                    couponButton.disabled = true;
-                }
-            } else {
-                // Only enable if no coupon has been applied yet
-                if (discountRate === 0) {
-                    console.log('Seats selected and no coupon applied - enabling coupon section');
-                    if (couponInput) {
-                        couponInput.disabled = false;
-                        couponInput.placeholder = 'Enter your coupon code';
-                    }
-                    if (couponButton) {
-                        couponButton.disabled = false;
-                    }
-                } else {
-                    console.log('Coupon already applied - keeping section disabled');
-                }
-            }
-        }
-
-        static updateSeatsList() {
-            const seatsList = document.getElementById('selected-seats-list');
-            const purchaseBtn = document.getElementById('purchase-btn');
-
-            if (selectedSeats.length === 0) {
-                seatsList.innerHTML = '<p style="color: var(--light-brown); font-size: 0.9rem;">No seats selected yet</p>';
-                purchaseBtn.disabled = true;
-            } else {
-                seatsList.innerHTML = this.generateSeatsHTML();
-                purchaseBtn.disabled = false;
-            }
-        }
-
-        static generateSeatsHTML() {
-            return selectedSeats.map(seat => `
+    // ===== UPDATE SUMMARY =====
+    function updateSummary() {
+        const seatsList = document.getElementById('selected-seats-list');
+        const purchaseBtn = document.getElementById('purchase-btn');
+        
+        if (selectedSeats.length === 0) {
+            seatsList.innerHTML = '<p style="color: var(--light-brown); font-size: 0.9rem;">No seats selected yet</p>';
+            purchaseBtn.disabled = true;
+        } else {
+            seatsList.innerHTML = selectedSeats.map(s => `
                 <div class="selected-seat-item">
-                    <span>Seat ${seat}</span>
-                    <span>${CONFIG.seatPrice} TL</span>
+                    <span>Seat ${s.seatNumber}</span>
+                    <span>${seatPrice} TL</span>
                 </div>
             `).join('');
+            purchaseBtn.disabled = false;
         }
-
-        static updatePurchaseButton() {
-            const purchaseBtn = document.getElementById('purchase-btn');
-            purchaseBtn.disabled = selectedSeats.length === 0;
+        
+        // Update pricing
+        const subtotal = selectedSeats.length * seatPrice;
+        const discount = subtotal * (discountRate / 100);
+        const total = subtotal - discount;
+        
+        document.getElementById('seat-count').textContent = selectedSeats.length;
+        document.getElementById('subtotal').textContent = `${subtotal} TL`;
+        document.getElementById('total-price').textContent = `${total} TL`;
+        
+        if (discountRate > 0) {
+            document.getElementById('discount-row').style.display = 'flex';
+            document.getElementById('discount-amount').textContent = `-${discount} TL`;
         }
-
-        static updatePricing() {
-            const seatCount = document.getElementById('seat-count');
-            const subtotal = document.getElementById('subtotal');
-            const totalPrice = document.getElementById('total-price');
-
-            const subtotalAmount = selectedSeats.length * CONFIG.seatPrice;
-            const discountAmount = subtotalAmount * (discountRate / 100);
-            const total = subtotalAmount - discountAmount;
-
-            seatCount.textContent = selectedSeats.length;
-            subtotal.textContent = subtotalAmount + ' TL';
-            totalPrice.textContent = total + ' TL';
-
-            this.updateDiscountDisplay(discountAmount);
-        }
-
-        static updateDiscountDisplay(discountAmount) {
-            const discountRow = document.getElementById('discount-row');
-            const discountAmountElement = document.getElementById('discount-amount');
-
-            if (discountRate > 0) {
-                discountRow.style.display = 'flex';
-                discountAmountElement.textContent = '-' + discountAmount + ' TL';
-            }
-        }
-    }
-
-    // ===== COUPON MANAGEMENT =====
-    class CouponManager {
-        static applyCoupon() {
-            console.log('applyCoupon called');
-            const couponInput = document.getElementById('coupon-input');
-            const couponCode = couponInput.value.trim().toUpperCase();
-            
-            console.log('Coupon code entered:', couponCode);
-            console.log('Available coupons:', CONFIG.coupons);
-
-            // Check if seats are selected first
-            if (selectedSeats.length === 0) {
-                this.showMessage('Please select at least one seat before applying a coupon.', 'error');
-                return;
-            }
-
-            // Check if a coupon is already applied
-            if (discountRate > 0) {
-                console.log('Coupon already applied');
-                this.showMessage('Only one coupon can be used per booking.', 'error');
-                return;
-            }
-
-            if (CONFIG.coupons[couponCode]) {
-                console.log('Valid coupon found');
-                this.applyValidCoupon(couponCode, couponInput);
-            } else {
-                console.log('Invalid coupon');
-                this.handleInvalidCoupon();
-            }
-        }
-
-        static applyValidCoupon(couponCode, couponInput) {
-            discountRate = CONFIG.coupons[couponCode];
-            this.showMessage(`Coupon "${couponCode}" applied successfully! ${discountRate}% discount applied.`, 'success');
+        
+        // Update coupon section
+        const couponInput = document.getElementById('coupon-input');
+        const couponBtn = document.querySelector('.btn-apply-coupon');
+        if (selectedSeats.length === 0 || discountRate > 0) {
             couponInput.disabled = true;
-            document.querySelector('.btn-apply-coupon').disabled = true;
-            SummaryManager.updateSummary();
-            
-            // Clear any existing error messages
-            setTimeout(() => {
-                const messageElement = document.getElementById('discount-message');
-                if (messageElement && messageElement.classList.contains('error')) {
-                    messageElement.style.display = 'none';
-                }
-            }, 100);
-        }
-
-        static handleInvalidCoupon() {
-            this.showMessage('Invalid coupon code. Please check and try again.', 'error');
-        }
-
-        static showMessage(message, type) {
-            const messageElement = document.getElementById('discount-message');
-            messageElement.textContent = message;
-            messageElement.className = `discount-applied ${type}`;
-            messageElement.style.display = 'flex';
-            
-            // Auto-hide error messages after 3 seconds
-            if (type === 'error') {
-                setTimeout(() => {
-                    messageElement.style.display = 'none';
-                }, 3000);
-            }
+            couponBtn.disabled = true;
+        } else {
+            couponInput.disabled = false;
+            couponBtn.disabled = false;
         }
     }
 
-    // ===== PURCHASE MANAGEMENT =====
-    class PurchaseManager {
-        static handlePurchase() {
-            if (selectedSeats.length === 0) return;
-
-            const total = this.calculateTotal();
+    // ===== VALIDATE COUPON =====
+    async function validateCoupon() {
+        const couponCode = document.getElementById('coupon-input').value.trim();
+        
+        if (!couponCode) {
+            showCouponMessage('Please enter a coupon code.', 'error');
+            return;
+        }
+        
+        if (selectedSeats.length === 0) {
+            showCouponMessage('Please select at least one seat first.', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/coupons/validate`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({coupon_code: couponCode})
+            });
             
-            if (!this.validateCredit(total)) return;
-            if (!this.confirmPurchase(total)) return;
-
-            this.completePurchase();
-        }
-
-        static calculateTotal() {
-            return (selectedSeats.length * CONFIG.seatPrice) * (1 - discountRate / 100);
-        }
-
-        static validateCredit(total) {
-            if (total > CONFIG.userCredit) {
-                alert('Insufficient balance. Please top up your credit.');
-                return false;
+            const data = await response.json();
+            
+            if (data.valid) {
+                discountRate = data.discount_rate;
+                appliedCouponCode = couponCode;
+                showCouponMessage(`Coupon applied! ${discountRate}% discount.`, 'success');
+                document.getElementById('coupon-input').disabled = true;
+                document.querySelector('.btn-apply-coupon').disabled = true;
+                updateSummary();
+            } else {
+                showCouponMessage(data.message || 'Invalid coupon.', 'error');
             }
-            return true;
-        }
-
-        static confirmPurchase(total) {
-            return confirm(`${selectedSeats.length} seats for ${total} TL payment. Do you want to confirm?`);
-        }
-
-        static completePurchase() {
-            alert('Your ticket has been successfully purchased. You will be redirected to the My Tickets page.');
-            window.location.href = 'MyTickets.html';
+        } catch (error) {
+            console.error('Coupon validation error:', error);
+            showCouponMessage('Error validating coupon.', 'error');
         }
     }
 
-    // ===== EVENT LISTENERS =====
-    class EventManager {
-        static initializeEventListeners() {
-            this.initializePurchaseButton();
-            this.initializeCouponButton();
+    function showCouponMessage(message, type) {
+        const el = document.getElementById('discount-message');
+        el.textContent = message;
+        el.className = `discount-applied ${type}`;
+        el.style.display = 'flex';
+        
+        if (type === 'error') {
+            setTimeout(() => el.style.display = 'none', 3000);
         }
+    }
 
-        static initializePurchaseButton() {
-            document.getElementById('purchase-btn').addEventListener('click', PurchaseManager.handlePurchase);
+    // ===== PURCHASE TICKET =====
+    async function purchaseTicket() {
+        if (selectedSeats.length === 0) return;
+        
+        const subtotal = selectedSeats.length * seatPrice;
+        const discount = subtotal * (discountRate / 100);
+        const total = subtotal - discount;
+        
+        if (total > userCredit) {
+            alert(`Insufficient balance. You need ${total} TL but have ${userCredit} TL.`);
+            return;
         }
-
-        static initializeCouponButton() {
-            const couponButton = document.querySelector('.btn-apply-coupon');
-            const couponInput = document.getElementById('coupon-input');
+        
+        if (!confirm(`Purchase ${selectedSeats.length} seat(s) for ${total} TL?`)) {
+            return;
+        }
+        
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const passengerNames = selectedSeats.map(() => `${user.first_name} ${user.last_name}`);
+        
+        const btn = document.getElementById('purchase-btn');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        
+        try {
+            const response = await fetch(`${API_URL}/tickets/purchase`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                credentials: 'include',
+                body: JSON.stringify({
+                    trip_id: tripData.TripID,
+                    seat_ids: selectedSeats.map(s => s.seatId),
+                    passenger_names: passengerNames,
+                    coupon_code: appliedCouponCode || null
+                })
+            });
             
-            console.log('Coupon button found:', couponButton);
-            console.log('Coupon input found:', couponInput);
+            const data = await response.json();
             
-            if (couponButton) {
-                couponButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('Coupon button clicked');
-                    CouponManager.applyCoupon();
-                });
+            if (data.success) {
+                // Update local storage with new balance
+                user.credit_balance = data.new_credit_balance;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                alert(data.message || 'Ticket purchased successfully!');
+                window.location.href = 'MyTickets.html';
+            } else {
+                alert(data.message || 'Purchase failed.');
+                btn.disabled = false;
+                btn.textContent = 'Make payment';
             }
-            
-            if (couponInput) {
-                couponInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        console.log('Enter key pressed');
-                        CouponManager.applyCoupon();
-                    }
-                });
-            }
+        } catch (error) {
+            console.error('Purchase error:', error);
+            alert('Error processing purchase. Please try again.');
+            btn.disabled = false;
+            btn.textContent = 'Make payment';
         }
     }
 
     // ===== INITIALIZATION =====
     document.addEventListener('DOMContentLoaded', function() {
-        ServiceManager.loadServiceData();
-        SeatManager.initializeSeatSelection();
-        EventManager.initializeEventListeners();
-        SummaryManager.updateSummary();
+        if (!checkLogin()) return;
         
-        // Fallback coupon functionality
-        console.log('Initializing fallback coupon functionality');
-        const couponButton = document.querySelector('.btn-apply-coupon');
-        if (couponButton) {
-            couponButton.onclick = function(e) {
-                e.preventDefault();
-                console.log('Fallback coupon button clicked');
-                CouponManager.applyCoupon();
-            };
-        }
+        loadUserData();
+        loadTripData();
+        updateSummary();
+        
+        // Event listeners
+        document.querySelector('.btn-apply-coupon').addEventListener('click', validateCoupon);
+        document.getElementById('coupon-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') validateCoupon();
+        });
+        document.getElementById('purchase-btn').addEventListener('click', purchaseTicket);
     });
 </script>
 </body>

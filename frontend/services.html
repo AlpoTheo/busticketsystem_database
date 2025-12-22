@@ -625,52 +625,280 @@
         </div>
 
         <script>
+            // API Base URL
+            const API_URL = 'http://localhost:5000/api';
+
+            // Store for trips data
+            let tripsData = [];
+
             // Handle URL parameters from search form
             function getUrlParameters() {
                 const urlParams = new URLSearchParams(window.location.search);
                 return {
-                    from: urlParams.get('from') || 'istanbul',
-                    to: urlParams.get('to') || 'ankara',
+                    from: urlParams.get('from'),
+                    to: urlParams.get('to'),
                     date: urlParams.get('date') || new Date().toISOString().split('T')[0]
                 };
             }
 
-            // Update search summary with URL parameters
-            function updateSearchSummary() {
+            // Update user info in header
+            function updateUserInfo() {
+                const userInfo = document.querySelector('.user-info');
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                
+                if (isLoggedIn && userInfo) {
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    userInfo.innerHTML = `
+                        <span>${user.first_name || 'User'} ${user.last_name || ''}</span>
+                        <div class="credit-badge">${(user.credit_balance || 0).toLocaleString()} TL</div>
+                        <button class="btn-logout" type="button" onclick="logout()">Exit</button>
+                    `;
+                } else if (userInfo) {
+                    userInfo.innerHTML = `
+                        <a href="login.html" style="color: white; text-decoration: none;">Log in</a>
+                    `;
+                }
+            }
+
+            // Logout function
+            function logout() {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            }
+
+            // Load trips from API
+            async function loadTrips() {
+                const params = getUrlParameters();
+                
+                console.log('Search params:', params); // Debug
+                
+                if (!params.from || !params.to || !params.date) {
+                    showNoResults('Please search from the home page.');
+                    return;
+                }
+
+                // Update search summary immediately with URL params
+                updateSearchSummaryFromParams(params);
+
+                const servicesList = document.querySelector('.services-list');
+                servicesList.innerHTML = '<div style="text-align: center; padding: 2rem;">Loading trips...</div>';
+
+                try {
+                    const apiUrl = `${API_URL}/trips/search?from=${params.from}&to=${params.to}&date=${params.date}`;
+                    console.log('API URL:', apiUrl); // Debug
+                    
+                    const response = await fetch(apiUrl, { credentials: 'include' });
+                    const data = await response.json();
+                    
+                    console.log('API Response:', data); // Debug
+
+                    if (data.success && data.trips && data.trips.length > 0) {
+                        tripsData = data.trips;
+                        displayTrips(data.trips);
+                        document.querySelector('.results-header h2').textContent = `Found ${data.trips.length} services.`;
+                    } else {
+                        document.querySelector('.results-header h2').textContent = `No services found.`;
+                        showNoResults('No trips found for the selected route and date.');
+                    }
+                } catch (error) {
+                    console.error('Error loading trips:', error);
+                    document.querySelector('.results-header h2').textContent = `Error`;
+                    showNoResults('Error loading trips. Please make sure the server is running.');
+                }
+            }
+
+            // Display trips
+            function displayTrips(trips) {
+                const servicesList = document.querySelector('.services-list');
+                servicesList.innerHTML = '';
+
+                trips.forEach(trip => {
+                    const features = [];
+                    if (trip.HasWifi) features.push('📶 Wi-Fi');
+                    if (trip.HasRefreshments) features.push('🍽️ Refreshments');
+                    if (trip.HasTV) features.push('📺 TV');
+                    if (trip.HasPowerOutlet) features.push('🔌 Power outlet');
+                    if (trip.HasEntertainment) features.push('🎮 Entertainment');
+
+                    const rating = '⭐'.repeat(Math.floor(trip.CompanyRating || 4));
+
+                    const tripHtml = `
+                        <article class="service-card" data-trip-id="${trip.TripID}">
+                            <div class="service-header">
+                                <div>
+                                    <div class="firm-name">${trip.CompanyName}</div>
+                                    <div class="firm-rating">
+                                        ${rating} <span style="color: var(--light-brown);">(${trip.CompanyRating || 4.5})</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="service-details">
+                                <div class="time-location">
+                                    <div class="time">${trip.DepartureTime ? trip.DepartureTime.substring(0, 5) : ''}</div>
+                                    <div class="location">${trip.DepartureCity}</div>
+                                </div>
+
+                                <div class="duration">
+                                    <div>${trip.DurationFormatted || formatDuration(trip.DurationMinutes)}</div>
+                                    <div class="duration-line"></div>
+                                </div>
+
+                                <div class="time-location">
+                                    <div class="time">${trip.ArrivalTime ? trip.ArrivalTime.substring(0, 5) : ''}</div>
+                                    <div class="location">${trip.ArrivalCity}</div>
+                                </div>
+
+                                <div class="price-box">
+                                    <div class="price-label">Per Person</div>
+                                    <div class="price">${trip.Price} TL</div>
+                                </div>
+                            </div>
+
+                            <div class="service-footer">
+                                <div class="service-features">
+                                    <div class="feature">🪑 ${trip.AvailableSeats} Empty Seat</div>
+                                    ${features.map(f => `<div class="feature">${f}</div>`).join('')}
+                                </div>
+                                <button class="btn-select" type="button" onclick="selectTrip(${trip.TripID})">Choose Seat</button>
+                            </div>
+                        </article>
+                    `;
+
+                    servicesList.insertAdjacentHTML('beforeend', tripHtml);
+                });
+            }
+
+            // Format duration
+            function formatDuration(minutes) {
+                if (!minutes) return '';
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                if (hours > 0 && mins > 0) return `${hours} hours ${mins} min`;
+                if (hours > 0) return `${hours} hours`;
+                return `${mins} min`;
+            }
+
+            // Show no results message
+            function showNoResults(message) {
+                const servicesList = document.querySelector('.services-list');
+                servicesList.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <h3>${message}</h3>
+                        <a href="index.html" class="btn-select" style="display: inline-block; margin-top: 1rem; text-decoration: none;">Search Again</a>
+                    </div>
+                `;
+            }
+
+            // City names map
+            let cityNames = {};
+            
+            // Load city names
+            async function loadCityNames() {
+                try {
+                    const response = await fetch(`${API_URL}/cities`);
+                    const data = await response.json();
+                    if (data.success) {
+                        data.cities.forEach(city => {
+                            cityNames[city.city_id] = city.city_name;
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error loading cities:', e);
+                }
+            }
+
+            // Update search summary from URL params
+            function updateSearchSummaryFromParams(params) {
+                const searchInfo = document.querySelector('.search-info');
+                if (!searchInfo) return;
+                
+                // Parse date correctly (YYYY-MM-DD format)
+                let formattedDate = params.date;
+                if (params.date) {
+                    const parts = params.date.split('-');
+                    if (parts.length === 3) {
+                        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                        formattedDate = dateObj.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }
+                
+                const fromCity = cityNames[params.from] || `City ${params.from}`;
+                const toCity = cityNames[params.to] || `City ${params.to}`;
+                
+                searchInfo.innerHTML = `
+                    <div class="search-item">
+                        <label>From</label>
+                        <strong>${fromCity}</strong>
+                    </div>
+                    <div class="search-item">
+                        <label>To</label>
+                        <strong>${toCity}</strong>
+                    </div>
+                    <div class="search-item">
+                        <label>Date</label>
+                        <strong>${formattedDate}</strong>
+                    </div>
+                `;
+            }
+
+            // Update search summary from trip data
+            function updateSearchSummary(trip) {
                 const params = getUrlParameters();
                 const searchInfo = document.querySelector('.search-info');
                 
-                if (searchInfo) {
-                    const cityNames = {
-                        'istanbul': 'Istanbul',
-                        'ankara': 'Ankara',
-                        'izmir': 'Izmir',
-                        'antalya': 'Antalya',
-                        'bursa': 'Bursa'
-                    };
-                    
-                    const fromCity = cityNames[params.from] || params.from;
-                    const toCity = cityNames[params.to] || params.to;
-                    const searchDate = new Date(params.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
+                if (searchInfo && trip) {
+                    // Parse date correctly
+                    let formattedDate = params.date;
+                    if (params.date) {
+                        const parts = params.date.split('-');
+                        if (parts.length === 3) {
+                            const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                            formattedDate = dateObj.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        }
+                    }
                     
                     searchInfo.innerHTML = `
                         <div class="search-item">
                             <label>From</label>
-                            <strong>${fromCity}</strong>
+                            <strong>${trip.DepartureCity}</strong>
                         </div>
                         <div class="search-item">
                             <label>To</label>
-                            <strong>${toCity}</strong>
+                            <strong>${trip.ArrivalCity}</strong>
                         </div>
                         <div class="search-item">
                             <label>Date</label>
-                            <strong>${searchDate}</strong>
+                            <strong>${formattedDate}</strong>
                         </div>
                     `;
+                }
+            }
+
+            // Select trip and go to seat selection
+            function selectTrip(tripId) {
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                
+                if (!isLoggedIn) {
+                    alert('Please login to book tickets.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const trip = tripsData.find(t => t.TripID === tripId);
+                if (trip) {
+                    localStorage.setItem('selectedTrip', JSON.stringify(trip));
+                    window.location.href = `chooseSeat.html?trip=${tripId}`;
                 }
             }
 
@@ -684,109 +912,41 @@
                 }
             }
 
-            // Setup choose seat buttons
-            function setupChooseSeatButtons() {
-                const chooseSeatButtons = document.querySelectorAll('.btn-select');
-                chooseSeatButtons.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        // Get service details from the clicked button's parent
-                        const service = this.closest('article');
-                        const departureTime = service.querySelector('.time').textContent;
-                        const departureCity = service.querySelector('.location').textContent;
-                        const arrivalTime = service.querySelectorAll('.time')[1].textContent;
-                        const arrivalCity = service.querySelectorAll('.location')[1].textContent;
-                        const price = service.querySelector('.price').textContent;
-                        
-                        // Store service details in localStorage for seat selection page
-                        const serviceData = {
-                            departureTime: departureTime,
-                            departureCity: departureCity,
-                            arrivalTime: arrivalTime,
-                            arrivalCity: arrivalCity,
-                            price: price,
-                            date: getUrlParameters().date
-                        };
-                        
-                        localStorage.setItem('selectedService', JSON.stringify(serviceData));
-                        
-                        // Redirect to seat selection page
-                        window.location.href = 'chooseSeat.html';
-                    });
-                });
-            }
-
-            // Setup sort functionality
+            // Sort functionality
             function setupSortFunctionality() {
                 const sortSelect = document.getElementById('sort-select');
                 if (sortSelect) {
                     sortSelect.addEventListener('change', function() {
-                        sortServices(this.value);
+                        const sortValue = this.value;
+                        let sortBy = 'DepartureTime';
+                        let sortOrder = 'ASC';
+                        
+                        switch(sortValue) {
+                            case 'departure': sortBy = 'DepartureTime'; break;
+                            case 'price-low': sortBy = 'Price'; sortOrder = 'ASC'; break;
+                            case 'price-high': sortBy = 'Price'; sortOrder = 'DESC'; break;
+                            case 'duration': sortBy = 'Duration'; break;
+                        }
+                        
+                        // Sort locally
+                        let sorted = [...tripsData];
+                        sorted.sort((a, b) => {
+                            if (sortValue === 'price-low') return a.Price - b.Price;
+                            if (sortValue === 'price-high') return b.Price - a.Price;
+                            if (sortValue === 'duration') return a.DurationMinutes - b.DurationMinutes;
+                            return a.DepartureTime.localeCompare(b.DepartureTime);
+                        });
+                        displayTrips(sorted);
                     });
                 }
             }
 
-            // Sort services based on selected criteria
-            function sortServices(sortBy) {
-                const servicesList = document.querySelector('.services-list');
-                const services = Array.from(servicesList.querySelectorAll('.service-card'));
-                
-                services.sort((a, b) => {
-                    switch (sortBy) {
-                        case 'departure':
-                            return sortByDepartureTime(a, b);
-                        case 'price-low':
-                            return sortByPrice(a, b, 'asc');
-                        case 'price-high':
-                            return sortByPrice(a, b, 'desc');
-                        case 'duration':
-                            return sortByDuration(a, b);
-                        default:
-                            return 0;
-                    }
-                });
-
-                // Re-append sorted services
-                services.forEach(service => servicesList.appendChild(service));
-            }
-
-            // Sort by departure time
-            function sortByDepartureTime(a, b) {
-                const timeA = a.querySelector('.time').textContent;
-                const timeB = b.querySelector('.time').textContent;
-                return timeA.localeCompare(timeB);
-            }
-
-            // Sort by price
-            function sortByPrice(a, b, order) {
-                const priceA = parseInt(a.querySelector('.price').textContent.replace(' TL', ''));
-                const priceB = parseInt(b.querySelector('.price').textContent.replace(' TL', ''));
-                return order === 'asc' ? priceA - priceB : priceB - priceA;
-            }
-
-            // Sort by duration
-            function sortByDuration(a, b) {
-                const durationA = getDurationInMinutes(a);
-                const durationB = getDurationInMinutes(b);
-                return durationA - durationB;
-            }
-
-            // Helper function to get duration in minutes
-            function getDurationInMinutes(service) {
-                const durationText = service.querySelector('.duration').textContent;
-                const match = durationText.match(/(\d+)\s*hours?\s*(\d+)?\s*min/);
-                if (match) {
-                    const hours = parseInt(match[1]);
-                    const minutes = parseInt(match[2]) || 0;
-                    return hours * 60 + minutes;
-                }
-                return 0;
-            }
-
             // Initialize on page load
-            document.addEventListener('DOMContentLoaded', function() {
-                updateSearchSummary();
+            document.addEventListener('DOMContentLoaded', async function() {
+                updateUserInfo();
+                await loadCityNames(); // Load city names first
+                loadTrips();
                 setupChangeButton();
-                setupChooseSeatButtons();
                 setupSortFunctionality();
             });
         </script>

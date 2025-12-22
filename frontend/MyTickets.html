@@ -963,7 +963,193 @@
 
 
         <script>
-            // Filter tabs functionality
+            // ===== API CONFIGURATION =====
+            const API_URL = 'http://localhost:5000/api';
+            let allTickets = [];
+            let userCredit = 0;
+
+            // ===== CHECK LOGIN =====
+            function checkLogin() {
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                if (!isLoggedIn) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            }
+
+            // ===== LOAD USER DATA =====
+            function loadUserData() {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                userCredit = user.credit_balance || 0;
+
+                // Update sidebar info
+                const userNameEl = document.querySelector('.user-name');
+                const userEmailEl = document.querySelector('.user-email');
+                const creditEl = document.querySelector('.credit-amount');
+                
+                if (userNameEl) userNameEl.textContent = `${user.first_name || 'User'} ${user.last_name || ''}`;
+                if (userEmailEl) userEmailEl.textContent = user.email || '';
+                if (creditEl) creditEl.textContent = `${userCredit.toLocaleString()} TL`;
+
+                // Update profile form
+                document.getElementById('fullName').value = `${user.first_name || ''} ${user.last_name || ''}`;
+                document.getElementById('email').value = user.email || '';
+                document.getElementById('phone').value = user.phone || '';
+
+                // Update top-up section
+                const topupCredit = document.querySelector('.current-credit h3');
+                if (topupCredit) topupCredit.textContent = `Current Credit: ${userCredit.toLocaleString()} TL`;
+            }
+
+            // ===== LOAD TICKETS =====
+            async function loadTickets() {
+                const ticketsList = document.querySelector('.tickets-list');
+                ticketsList.innerHTML = '<div style="text-align: center; padding: 2rem;">Loading tickets...</div>';
+
+                try {
+                    const response = await fetch(`${API_URL}/tickets`, {credentials: 'include'});
+                    const data = await response.json();
+
+                    if (data.success && data.tickets.length > 0) {
+                        allTickets = data.tickets;
+                        displayTickets(data.tickets);
+                    } else {
+                        ticketsList.innerHTML = `
+                            <div class="no-tickets" style="text-align: center; padding: 3rem;">
+                                <h3>🎫 No tickets yet</h3>
+                                <p>Start your journey by booking a ticket!</p>
+                                <a href="index.html" class="btn btn-primary" style="margin-top: 1rem;">Search Trips</a>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading tickets:', error);
+                    ticketsList.innerHTML = '<div style="text-align: center; padding: 2rem; color: red;">Error loading tickets</div>';
+                }
+            }
+
+            // ===== DISPLAY TICKETS =====
+            function displayTickets(tickets) {
+                const ticketsList = document.querySelector('.tickets-list');
+                ticketsList.innerHTML = '';
+
+                tickets.forEach(ticket => {
+                    const statusClass = ticket.Status === 'Cancelled' ? 'cancelled' : 
+                                       ticket.Status === 'Completed' ? 'completed' : 'upcoming';
+                    
+                    const departureDate = new Date(ticket.DepartureDate).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+
+                    const ticketHtml = `
+                        <div class="ticket-card" data-ticket-id="${ticket.TicketID}" data-status="${statusClass}">
+                            <div class="ticket-header">
+                                <div class="company-info">
+                                    <span class="company-name">${ticket.CompanyName || 'Bus Company'}</span>
+                                    <span class="ticket-id">#${ticket.TicketID}</span>
+                                </div>
+                                <span class="ticket-status ${statusClass}">${ticket.Status || 'Upcoming'}</span>
+                            </div>
+
+                            <div class="ticket-journey">
+                                <div class="journey-point">
+                                    <div class="journey-time">${(ticket.DepartureTime || '').substring(0, 5)}</div>
+                                    <div class="journey-location">${ticket.DepartureCity || ''}</div>
+                                    <div class="journey-date">${departureDate}</div>
+                                </div>
+                                <div class="journey-arrow">→</div>
+                                <div class="journey-point">
+                                    <div class="journey-time">${(ticket.ArrivalTime || '').substring(0, 5)}</div>
+                                    <div class="journey-location">${ticket.ArrivalCity || ''}</div>
+                                    <div class="journey-date">${departureDate}</div>
+                                </div>
+                            </div>
+
+                            <div class="ticket-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Passenger</span>
+                                    <span class="detail-value">${ticket.PassengerName || '-'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Seat</span>
+                                    <span class="detail-value">${ticket.SeatNumber || '-'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Price</span>
+                                    <span class="detail-value">${ticket.PaidAmount || 0} TL</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Duration</span>
+                                    <span class="detail-value">${formatDuration(ticket.DurationMinutes)}</span>
+                                </div>
+                            </div>
+
+                            <div class="ticket-actions">
+                                <button class="btn btn-download" onclick="downloadTicket(${ticket.TicketID})">Download PDF</button>
+                                ${ticket.Status !== 'Cancelled' && ticket.Status !== 'Completed' ? 
+                                    `<button class="btn btn-cancel" onclick="cancelTicket(${ticket.TicketID})">Cancel</button>` : ''}
+                                <button class="btn btn-details" onclick="viewTicketDetails(${ticket.TicketID})">Details</button>
+                            </div>
+                        </div>
+                    `;
+
+                    ticketsList.insertAdjacentHTML('beforeend', ticketHtml);
+                });
+            }
+
+            function formatDuration(minutes) {
+                if (!minutes) return '-';
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return `${hours}h ${mins}m`;
+            }
+
+            // ===== CANCEL TICKET =====
+            async function cancelTicket(ticketId) {
+                if (!confirm('Are you sure you want to cancel this ticket? The amount will be refunded to your credit.')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/tickets/${ticketId}/cancel`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(data.message || 'Ticket cancelled successfully!');
+                        
+                        // Update local storage
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        user.credit_balance = data.new_credit_balance;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        
+                        loadUserData();
+                        loadTickets();
+                    } else {
+                        alert(data.message || 'Failed to cancel ticket.');
+                    }
+                } catch (error) {
+                    console.error('Cancel error:', error);
+                    alert('Error cancelling ticket.');
+                }
+            }
+
+            function downloadTicket(ticketId) {
+                alert('Generating PDF for ticket #' + ticketId + '...\n(This feature requires server-side PDF generation)');
+            }
+
+            function viewTicketDetails(ticketId) {
+                const ticket = allTickets.find(t => t.TicketID === ticketId);
+                if (ticket) {
+                    alert(`Ticket #${ticketId}\n\nRoute: ${ticket.DepartureCity} → ${ticket.ArrivalCity}\nPassenger: ${ticket.PassengerName}\nSeat: ${ticket.SeatNumber}\nPrice: ${ticket.PaidAmount} TL\nStatus: ${ticket.Status}`);
+                }
+            }
+
+            // ===== FILTER TICKETS =====
             document.querySelectorAll('.filter-tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -974,14 +1160,11 @@
                 });
             });
 
-            // Filter tickets based on status
             function filterTickets(filterType) {
                 const tickets = document.querySelectorAll('.ticket-card');
                 
                 tickets.forEach(ticket => {
-                    const statusElement = ticket.querySelector('.ticket-status');
-                    const status = statusElement ? statusElement.textContent.toLowerCase() : '';
-                    
+                    const status = ticket.dataset.status || '';
                     let shouldShow = false;
                     
                     switch (filterType) {
@@ -1005,114 +1188,192 @@
                 });
             }
 
-            // Cancel ticket functionality
-            document.querySelectorAll('.btn-cancel').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to cancel your ticket? The payment will be refunded to your account after the cancellation.')) {
-                        alert('Your ticket has been cancelled. Payment has been refunded to your account.')
-                    }
-                });
-            });
+            // ===== LOAD COUPONS =====
+            async function loadCoupons() {
+                try {
+                    const response = await fetch(`${API_URL}/coupons`, {credentials: 'include'});
+                    const data = await response.json();
 
-            // Download PDF functionality
-            document.querySelectorAll('.btn-download').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    alert('Your ticket is downloading as PDF...')
-                });
-            });
-
-            // Sidebar navigation functionality
-            document.querySelectorAll('.sidebar-menu a').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Remove active class from all links
-                    document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Hide all sections
-                    document.querySelectorAll('.main-content').forEach(section => {
-                        section.style.display = 'none';
-                    });
-                    
-                    // Show selected section
-                    const linkText = this.textContent.toLowerCase();
-                    let targetSection = '';
-                    
-                    if (linkText.includes('my tickets')) {
-                        targetSection = 'tickets';
-                    } else if (linkText.includes('profile')) {
-                        targetSection = 'profile-section';
-                    } else if (linkText.includes('top up')) {
-                        targetSection = 'topup-section';
-                    } else if (linkText.includes('coupons')) {
-                        targetSection = 'coupons-section';
-                    } else if (linkText.includes('settings')) {
-                        targetSection = 'settings-section';
-                    } else if (linkText.includes('log out')) {
-                        if (confirm('Are you sure you want to log out?')) {
-                            window.location.href = 'index.html';
-                        }
-                        return;
+                    if (data.success) {
+                        displayCoupons(data.coupons);
                     }
-                    
-                    if (targetSection) {
-                        if (targetSection === 'tickets') {
-                            document.querySelector('.main-content:first-of-type').style.display = 'block';
-                        } else {
-                            document.getElementById(targetSection).style.display = 'block';
-                        }
-                    }
-                });
-            });
+                } catch (error) {
+                    console.error('Error loading coupons:', error);
+                }
+            }
 
-            // Top up credit functionality
+            function displayCoupons(coupons) {
+                const couponsList = document.querySelector('.coupons-list');
+                if (!couponsList || coupons.length === 0) return;
+
+                couponsList.innerHTML = coupons.map(coupon => {
+                    const isExpired = new Date(coupon.ExpiryDate) < new Date();
+                    const statusClass = coupon.IsUsed ? 'used' : (isExpired ? 'expired' : 'active');
+                    const statusText = coupon.IsUsed ? 'Used' : (isExpired ? 'Expired' : 'Active');
+                    
+                    return `
+                        <div class="coupon-card ${statusClass}">
+                            <div class="coupon-code">${coupon.CouponCode}</div>
+                            <div class="coupon-details">
+                                <div class="coupon-discount">${coupon.DiscountRate}% Discount</div>
+                                <div class="coupon-expiry">Expires: ${new Date(coupon.ExpiryDate).toLocaleDateString()}</div>
+                            </div>
+                            <div class="coupon-status">${statusText}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // ===== TOP UP CREDIT =====
+            let selectedTopupAmount = 0;
+
             document.querySelectorAll('.amount-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
                     this.classList.add('selected');
+                    selectedTopupAmount = parseInt(this.dataset.amount);
                     document.getElementById('customAmount').value = '';
                 });
             });
 
             document.getElementById('customAmount').addEventListener('input', function() {
                 document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+                selectedTopupAmount = parseInt(this.value) || 0;
             });
 
-            document.getElementById('topup-btn').addEventListener('click', function() {
-                const selectedAmount = document.querySelector('.amount-btn.selected');
+            document.getElementById('topup-btn').addEventListener('click', async function() {
                 const customAmount = document.getElementById('customAmount').value;
+                const amount = customAmount ? parseInt(customAmount) : selectedTopupAmount;
                 const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
-                
-                let amount = 0;
-                if (selectedAmount) {
-                    amount = selectedAmount.dataset.amount;
-                } else if (customAmount) {
-                    amount = customAmount;
+
+                if (!amount || amount <= 0) {
+                    alert('Please select or enter an amount.');
+                    return;
                 }
-                
-                if (amount > 0) {
-                    if (confirm(`Add ${amount} TL to your account using ${paymentMethod}?`)) {
-                        alert(`Credit of ${amount} TL has been added to your account!`);
-                        // Update credit display
-                        const currentCredit = document.querySelector('.credit-amount');
-                        const newCredit = parseInt(currentCredit.textContent.replace(',', '')) + parseInt(amount);
-                        currentCredit.textContent = newCredit.toLocaleString() + ' TL';
+
+                if (!confirm(`Add ${amount} TL to your account?`)) return;
+
+                this.disabled = true;
+                this.textContent = 'Processing...';
+
+                try {
+                    const response = await fetch(`${API_URL}/credit/add`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            amount: amount,
+                            payment_method: paymentMethod === 'card' ? 'CreditCard' : 'BankTransfer'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert(data.message || `${amount} TL added to your account!`);
+                        
+                        // Update local storage
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        user.credit_balance = data.new_credit_balance;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        
+                        loadUserData();
+                    } else {
+                        alert(data.message || 'Failed to add credit.');
                     }
-                } else {
-                    alert('Please select an amount to add.');
+                } catch (error) {
+                    console.error('Top-up error:', error);
+                    alert('Error adding credit.');
+                } finally {
+                    this.disabled = false;
+                    this.textContent = 'Add Credit';
                 }
             });
 
-            // Profile form submission
-            document.querySelector('#profile-section form').addEventListener('submit', function(e) {
-                e.preventDefault();
-                alert('Profile updated successfully!');
+            // ===== SIDEBAR NAVIGATION =====
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    document.querySelectorAll('.main-content').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    
+                    const linkText = this.textContent.toLowerCase();
+                    
+                    if (linkText.includes('my tickets')) {
+                        document.querySelector('.main-content:first-of-type').style.display = 'block';
+                    } else if (linkText.includes('profile')) {
+                        document.getElementById('profile-section').style.display = 'block';
+                    } else if (linkText.includes('top up')) {
+                        document.getElementById('topup-section').style.display = 'block';
+                    } else if (linkText.includes('coupons')) {
+                        document.getElementById('coupons-section').style.display = 'block';
+                        loadCoupons();
+                    } else if (linkText.includes('settings')) {
+                        document.getElementById('settings-section').style.display = 'block';
+                    } else if (linkText.includes('log out')) {
+                        if (confirm('Are you sure you want to log out?')) {
+                            localStorage.removeItem('isLoggedIn');
+                            localStorage.removeItem('user');
+                            window.location.href = 'index.html';
+                        }
+                    }
+                });
             });
 
-            // Settings form submission
+            // ===== PROFILE UPDATE =====
+            document.querySelector('#profile-section form').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const nameParts = document.getElementById('fullName').value.split(' ');
+                const firstName = nameParts[0];
+                const lastName = nameParts.slice(1).join(' ');
+                
+                try {
+                    const response = await fetch(`${API_URL}/profile`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            first_name: firstName,
+                            last_name: lastName,
+                            phone: document.getElementById('phone').value,
+                            address: document.getElementById('address').value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Profile updated successfully!');
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+                        user.first_name = firstName;
+                        user.last_name = lastName;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        loadUserData();
+                    } else {
+                        alert(data.message || 'Failed to update profile.');
+                    }
+                } catch (error) {
+                    console.error('Profile update error:', error);
+                    alert('Error updating profile.');
+                }
+            });
+
+            // ===== SETTINGS =====
             document.querySelector('#settings-section .btn-primary').addEventListener('click', function() {
                 alert('Settings saved successfully!');
+            });
+
+            // ===== INITIALIZATION =====
+            document.addEventListener('DOMContentLoaded', function() {
+                if (!checkLogin()) return;
+                loadUserData();
+                loadTickets();
             });
         </script>
 

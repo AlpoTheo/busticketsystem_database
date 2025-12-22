@@ -47,23 +47,6 @@ CREATE TABLE Cities (
 GO
 
 -- ----------------------------------------------------------------------------
--- Table: SystemAdmins
--- Description: Stores system-wide administrators
--- ----------------------------------------------------------------------------
-CREATE TABLE SystemAdmins (
-    AdminID INT IDENTITY(1,1) PRIMARY KEY,
-    Username NVARCHAR(50) NOT NULL UNIQUE,
-    Email NVARCHAR(100) NOT NULL UNIQUE,
-    PasswordHash NVARCHAR(256) NOT NULL,
-    FirstName NVARCHAR(50) NOT NULL,
-    LastName NVARCHAR(50) NOT NULL,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    LastLoginAt DATETIME NULL
-);
-GO
-
--- ----------------------------------------------------------------------------
 -- Table: Companies (Bus Firms)
 -- Description: Stores bus company/firm information
 -- ----------------------------------------------------------------------------
@@ -103,7 +86,7 @@ GO
 
 -- ----------------------------------------------------------------------------
 -- Table: Users
--- Description: Stores customer/passenger information
+-- Description: Stores customer/passenger information and system admins
 -- ----------------------------------------------------------------------------
 CREATE TABLE Users (
     UserID INT IDENTITY(1,1) PRIMARY KEY,
@@ -112,7 +95,8 @@ CREATE TABLE Users (
     Email NVARCHAR(100) NOT NULL UNIQUE,
     Phone NVARCHAR(20) NOT NULL,
     PasswordHash NVARCHAR(256) NOT NULL,
-    IDNumber NVARCHAR(11) NOT NULL UNIQUE, -- Turkish ID number (11 digits)
+    IDNumber NVARCHAR(11) NOT NULL UNIQUE,
+    Role NVARCHAR(20) DEFAULT 'User' CHECK (Role IN ('User', 'SystemAdmin')),
     CreditBalance DECIMAL(10,2) DEFAULT 0.00 CHECK (CreditBalance >= 0),
     BirthDate DATE NULL,
     Address NVARCHAR(500) NULL,
@@ -155,7 +139,7 @@ CREATE TABLE Seats (
     BusID INT NOT NULL,
     SeatNumber INT NOT NULL CHECK (SeatNumber > 0),
     SeatRow INT NOT NULL,
-    SeatColumn NVARCHAR(1) NOT NULL, -- A, B, C, D (A-B left side, C-D right side)
+    SeatColumn NVARCHAR(1) NOT NULL,
     IsActive BIT DEFAULT 1,
     CONSTRAINT FK_Seats_Buses FOREIGN KEY (BusID) 
         REFERENCES Buses(BusID) ON DELETE CASCADE,
@@ -207,7 +191,7 @@ CREATE TABLE Coupons (
     ExpiryDate DATE NOT NULL,
     IsActive BIT DEFAULT 1,
     CreatedAt DATETIME DEFAULT GETDATE(),
-    CreatedBy INT NULL -- SystemAdminID
+    CreatedBy INT NULL
 );
 GO
 
@@ -265,7 +249,7 @@ CREATE TABLE TicketSeats (
     TicketSeatID INT IDENTITY(1,1) PRIMARY KEY,
     TicketID INT NOT NULL,
     SeatID INT NOT NULL,
-    TripID INT NOT NULL, -- Denormalized for query performance
+    TripID INT NOT NULL,
     PassengerName NVARCHAR(100) NOT NULL,
     PassengerIDNumber NVARCHAR(11) NULL,
     CONSTRAINT FK_TicketSeats_Tickets FOREIGN KEY (TicketID) 
@@ -285,7 +269,7 @@ GO
 CREATE TABLE Payments (
     PaymentID INT IDENTITY(1,1) PRIMARY KEY,
     UserID INT NOT NULL,
-    TicketID INT NULL, -- NULL for credit top-up payments
+    TicketID INT NULL,
     Amount DECIMAL(10,2) NOT NULL,
     PaymentType NVARCHAR(20) NOT NULL 
         CHECK (PaymentType IN ('TicketPurchase', 'CreditTopUp', 'Refund')),
@@ -311,7 +295,7 @@ CREATE TABLE ActivityLogs (
     ActionType NVARCHAR(50) NOT NULL,
     TableName NVARCHAR(50) NOT NULL,
     RecordID INT NULL,
-    UserType NVARCHAR(20) NOT NULL, -- 'SystemAdmin', 'FirmAdmin', 'User'
+    UserType NVARCHAR(20) NOT NULL,
     UserID INT NOT NULL,
     Description NVARCHAR(500) NOT NULL,
     OldValues NVARCHAR(MAX) NULL,
@@ -325,53 +309,48 @@ GO
 -- SECTION 3: INDEXES FOR PERFORMANCE
 -- ============================================================================
 
--- Trips indexes
 CREATE INDEX IX_Trips_DepartureDate ON Trips(DepartureDate);
 CREATE INDEX IX_Trips_DepartureCity ON Trips(DepartureCityID);
 CREATE INDEX IX_Trips_ArrivalCity ON Trips(ArrivalCityID);
 CREATE INDEX IX_Trips_Status ON Trips(Status);
 CREATE INDEX IX_Trips_Search ON Trips(DepartureCityID, ArrivalCityID, DepartureDate, Status);
-
--- Tickets indexes
 CREATE INDEX IX_Tickets_UserID ON Tickets(UserID);
 CREATE INDEX IX_Tickets_TripID ON Tickets(TripID);
 CREATE INDEX IX_Tickets_Status ON Tickets(Status);
 CREATE INDEX IX_Tickets_PurchaseDate ON Tickets(PurchaseDate);
-
--- TicketSeats indexes
 CREATE INDEX IX_TicketSeats_TripID ON TicketSeats(TripID);
 CREATE INDEX IX_TicketSeats_SeatID ON TicketSeats(SeatID);
-
--- Users indexes
 CREATE INDEX IX_Users_Email ON Users(Email);
 CREATE INDEX IX_Users_IDNumber ON Users(IDNumber);
-
--- Payments indexes
 CREATE INDEX IX_Payments_UserID ON Payments(UserID);
 CREATE INDEX IX_Payments_CreatedAt ON Payments(CreatedAt);
-
 GO
 
 -- ============================================================================
--- SECTION 4: STORED PROCEDURES
+-- SECTION 4: SEQUENCES
+-- ============================================================================
+
+CREATE SEQUENCE TicketSequence START WITH 1000 INCREMENT BY 1;
+CREATE SEQUENCE TripSequence START WITH 100 INCREMENT BY 1;
+GO
+
+-- ============================================================================
+-- SECTION 5: STORED PROCEDURES
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_SearchTrips
--- Description: Searches for available trips based on criteria
--- This demonstrates EFFICIENT SQL querying as required by project guidelines
+-- sp_SearchTrips: Search for available trips
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_SearchTrips
     @DepartureCityID INT,
     @ArrivalCityID INT,
     @DepartureDate DATE,
-    @SortBy NVARCHAR(20) = 'DepartureTime', -- 'DepartureTime', 'Price', 'Duration'
+    @SortBy NVARCHAR(20) = 'DepartureTime',
     @SortOrder NVARCHAR(4) = 'ASC'
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Using specific SQL query instead of fetching all data and filtering in Python
     SELECT 
         t.TripID,
         t.TripCode,
@@ -385,6 +364,7 @@ BEGIN
         t.DurationMinutes,
         t.Price,
         t.AvailableSeats,
+        b.TotalSeats,
         b.HasWifi,
         b.HasTV,
         b.HasRefreshments,
@@ -413,8 +393,7 @@ END
 GO
 
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_GetTripSeatStatus
--- Description: Gets all seats and their availability for a specific trip
+-- sp_GetTripSeatStatus: Get seat availability for a trip
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_GetTripSeatStatus
     @TripID INT
@@ -445,20 +424,14 @@ END
 GO
 
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_PurchaseTicket (TRANSACTION EXAMPLE)
--- Description: Handles complete ticket purchase with seat reservation
--- This demonstrates transaction handling and multiple operations
+-- sp_PurchaseTicket: Purchase ticket with transaction
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_PurchaseTicket
     @UserID INT,
     @TripID INT,
-    @SeatIDs NVARCHAR(MAX), -- Comma-separated seat IDs
-    @CouponCode NVARCHAR(50) = NULL,
-    @PassengerNames NVARCHAR(MAX), -- Comma-separated names matching seats
-    @UseCredit BIT = 1,
-    @TicketID INT OUTPUT,
-    @Success BIT OUTPUT,
-    @Message NVARCHAR(500) OUTPUT
+    @SeatIDs NVARCHAR(MAX),
+    @PassengerNames NVARCHAR(MAX),
+    @CouponCode NVARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -475,51 +448,47 @@ BEGIN
     DECLARE @TicketCode NVARCHAR(20);
     DECLARE @TripStatus NVARCHAR(20);
     DECLARE @AvailableSeats INT;
+    DECLARE @TicketID INT;
     
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- 1. Validate Trip exists and is active
+        -- 1. Validate Trip
         SELECT @TripPrice = Price, @TripStatus = Status, @AvailableSeats = AvailableSeats
         FROM Trips WHERE TripID = @TripID;
         
         IF @TripPrice IS NULL
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'Trip not found.';
+            SELECT 0 AS Success, 'Trip not found.' AS Message, NULL AS TicketID;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
         IF @TripStatus <> 'Active'
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'Trip is not available for booking.';
+            SELECT 0 AS Success, 'Trip is not available.' AS Message, NULL AS TicketID;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
-        -- 2. Count requested seats
-        SELECT @TotalSeats = COUNT(value) 
-        FROM STRING_SPLIT(@SeatIDs, ',');
+        -- 2. Count seats
+        SELECT @TotalSeats = COUNT(value) FROM STRING_SPLIT(@SeatIDs, ',');
         
         IF @TotalSeats > @AvailableSeats
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'Not enough seats available.';
+            SELECT 0 AS Success, 'Not enough seats available.' AS Message, NULL AS TicketID;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
         IF @TotalSeats > 5
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'Maximum 5 seats per booking.';
+            SELECT 0 AS Success, 'Maximum 5 seats per booking.' AS Message, NULL AS TicketID;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
-        -- 3. Check if seats are available (not already booked)
+        -- 3. Check seat availability
         IF EXISTS (
             SELECT 1 FROM TicketSeats ts
             INNER JOIN Tickets t ON ts.TicketID = t.TicketID
@@ -528,13 +497,12 @@ BEGIN
               AND t.Status IN ('Active', 'Completed')
         )
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'One or more selected seats are already booked.';
+            SELECT 0 AS Success, 'One or more seats are already booked.' AS Message, NULL AS TicketID;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
-        -- 4. Validate coupon if provided
+        -- 4. Validate coupon
         IF @CouponCode IS NOT NULL AND @CouponCode <> ''
         BEGIN
             SELECT @CouponID = CouponID, @DiscountRate = DiscountRate
@@ -546,17 +514,14 @@ BEGIN
               
             IF @CouponID IS NULL
             BEGIN
-                SET @Success = 0;
-                SET @Message = 'Invalid or expired coupon code.';
+                SELECT 0 AS Success, 'Invalid or expired coupon.' AS Message, NULL AS TicketID;
                 ROLLBACK TRANSACTION;
                 RETURN;
             END
             
-            -- Check if user already used this coupon
             IF EXISTS (SELECT 1 FROM UserCoupons WHERE UserID = @UserID AND CouponID = @CouponID AND IsUsed = 1)
             BEGIN
-                SET @Success = 0;
-                SET @Message = 'You have already used this coupon.';
+                SELECT 0 AS Success, 'Coupon already used.' AS Message, NULL AS TicketID;
                 ROLLBACK TRANSACTION;
                 RETURN;
             END
@@ -567,18 +532,14 @@ BEGIN
         SET @DiscountAmount = @TotalPrice * (@DiscountRate / 100);
         SET @FinalPrice = @TotalPrice - @DiscountAmount;
         
-        -- 6. Check user credit if using credit
-        IF @UseCredit = 1
+        -- 6. Check credit
+        SELECT @UserCredit = CreditBalance FROM Users WHERE UserID = @UserID;
+        
+        IF @UserCredit < @FinalPrice
         BEGIN
-            SELECT @UserCredit = CreditBalance FROM Users WHERE UserID = @UserID;
-            
-            IF @UserCredit < @FinalPrice
-            BEGIN
-                SET @Success = 0;
-                SET @Message = 'Insufficient credit balance. Required: ' + CAST(@FinalPrice AS NVARCHAR) + ' TL, Available: ' + CAST(@UserCredit AS NVARCHAR) + ' TL';
-                ROLLBACK TRANSACTION;
-                RETURN;
-            END
+            SELECT 0 AS Success, 'Insufficient credit. Required: ' + CAST(@FinalPrice AS NVARCHAR) + ' TL' AS Message, NULL AS TicketID;
+            ROLLBACK TRANSACTION;
+            RETURN;
         END
         
         -- 7. Generate ticket code
@@ -598,93 +559,55 @@ BEGIN
         
         DECLARE @NameTable TABLE (PassengerName NVARCHAR(100), RowNum INT);
         INSERT INTO @NameTable (PassengerName, RowNum)
-        SELECT value, ROW_NUMBER() OVER (ORDER BY (SELECT NULL))
-        FROM STRING_SPLIT(@PassengerNames, ',');
+        SELECT TRIM(value), ROW_NUMBER() OVER (ORDER BY (SELECT NULL))
+        FROM STRING_SPLIT(@PassengerNames, '|');
         
         INSERT INTO TicketSeats (TicketID, SeatID, TripID, PassengerName)
-        SELECT @TicketID, s.SeatID, @TripID, n.PassengerName
+        SELECT @TicketID, s.SeatID, @TripID, ISNULL(n.PassengerName, 'Passenger')
         FROM @SeatIDTable s
-        INNER JOIN @NameTable n ON s.RowNum = n.RowNum;
+        LEFT JOIN @NameTable n ON s.RowNum = n.RowNum;
         
-        -- 10. Update trip available seats
-        UPDATE Trips 
-        SET AvailableSeats = AvailableSeats - @TotalSeats,
-            UpdatedAt = GETDATE()
+        -- 10. Update available seats
+        UPDATE Trips SET AvailableSeats = AvailableSeats - @TotalSeats, UpdatedAt = GETDATE()
         WHERE TripID = @TripID;
         
-        -- 11. Deduct user credit if using credit
-        IF @UseCredit = 1
-        BEGIN
-            UPDATE Users 
-            SET CreditBalance = CreditBalance - @FinalPrice,
-                UpdatedAt = GETDATE()
-            WHERE UserID = @UserID;
-            
-            -- Record payment
-            INSERT INTO Payments (UserID, TicketID, Amount, PaymentType, PaymentMethod, Status)
-            VALUES (@UserID, @TicketID, @FinalPrice, 'TicketPurchase', 'UserCredit', 'Completed');
-        END
+        -- 11. Deduct credit
+        UPDATE Users SET CreditBalance = CreditBalance - @FinalPrice, UpdatedAt = GETDATE()
+        WHERE UserID = @UserID;
         
-        -- 12. Update coupon usage if used
+        -- 12. Record payment
+        INSERT INTO Payments (UserID, TicketID, Amount, PaymentType, PaymentMethod, Status)
+        VALUES (@UserID, @TicketID, @FinalPrice, 'TicketPurchase', 'UserCredit', 'Completed');
+        
+        -- 13. Update coupon usage
         IF @CouponID IS NOT NULL
         BEGIN
             UPDATE Coupons SET TimesUsed = TimesUsed + 1 WHERE CouponID = @CouponID;
             
-            -- Mark user coupon as used or create new record
             IF EXISTS (SELECT 1 FROM UserCoupons WHERE UserID = @UserID AND CouponID = @CouponID)
-            BEGIN
-                UPDATE UserCoupons 
-                SET IsUsed = 1, UsedAt = GETDATE() 
-                WHERE UserID = @UserID AND CouponID = @CouponID;
-            END
+                UPDATE UserCoupons SET IsUsed = 1, UsedAt = GETDATE() WHERE UserID = @UserID AND CouponID = @CouponID;
             ELSE
-            BEGIN
-                INSERT INTO UserCoupons (UserID, CouponID, IsUsed, UsedAt)
-                VALUES (@UserID, @CouponID, 1, GETDATE());
-            END
+                INSERT INTO UserCoupons (UserID, CouponID, IsUsed, UsedAt) VALUES (@UserID, @CouponID, 1, GETDATE());
         END
-        
-        -- 13. Log activity
-        INSERT INTO ActivityLogs (ActionType, TableName, RecordID, UserType, UserID, Description)
-        VALUES ('INSERT', 'Tickets', @TicketID, 'User', @UserID, 
-                'Purchased ticket ' + @TicketCode + ' for trip ' + CAST(@TripID AS NVARCHAR) + 
-                ', ' + CAST(@TotalSeats AS NVARCHAR) + ' seats, Total: ' + CAST(@FinalPrice AS NVARCHAR) + ' TL');
         
         COMMIT TRANSACTION;
         
-        SET @Success = 1;
-        SET @Message = 'Ticket purchased successfully! Ticket Code: ' + @TicketCode;
+        SELECT 1 AS Success, 'Ticket purchased! Code: ' + @TicketCode AS Message, @TicketID AS TicketID;
         
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
-            
-        SET @Success = 0;
-        SET @Message = 'Error: ' + ERROR_MESSAGE();
-        SET @TicketID = NULL;
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        SELECT 0 AS Success, 'Error: ' + ERROR_MESSAGE() AS Message, NULL AS TicketID;
     END CATCH
 END
 GO
 
--- Create sequence for ticket codes
-IF NOT EXISTS (SELECT * FROM sys.sequences WHERE name = 'TicketSequence')
-BEGIN
-    CREATE SEQUENCE TicketSequence
-    START WITH 1
-    INCREMENT BY 1;
-END
-GO
-
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_CancelTicket
--- Description: Cancels a ticket and processes refund
+-- sp_CancelTicket: Cancel ticket and refund
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_CancelTicket
     @TicketID INT,
-    @UserID INT,
-    @Success BIT OUTPUT,
-    @Message NVARCHAR(500) OUTPUT
+    @UserID INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -693,115 +616,66 @@ BEGIN
     DECLARE @TicketStatus NVARCHAR(20);
     DECLARE @TripID INT;
     DECLARE @FinalPrice DECIMAL(10,2);
-    DECLARE @TripDepartureDate DATE;
-    DECLARE @TripDepartureTime TIME;
     DECLARE @SeatsCount INT;
     DECLARE @RefundAmount DECIMAL(10,2);
-    DECLARE @HoursUntilDeparture INT;
     
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- 1. Get ticket details
-        SELECT @TicketStatus = t.Status, @TripID = t.TripID, @FinalPrice = t.FinalPrice,
-               @TripDepartureDate = tr.DepartureDate, @TripDepartureTime = tr.DepartureTime
-        FROM Tickets t
-        INNER JOIN Trips tr ON t.TripID = tr.TripID
-        WHERE t.TicketID = @TicketID AND t.UserID = @UserID;
+        SELECT @TicketStatus = t.Status, @TripID = t.TripID, @FinalPrice = t.FinalPrice
+        FROM Tickets t WHERE t.TicketID = @TicketID AND t.UserID = @UserID;
         
         IF @TicketStatus IS NULL
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'Ticket not found or does not belong to this user.';
+            SELECT 0 AS Success, 'Ticket not found.' AS Message;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
         IF @TicketStatus <> 'Active'
         BEGIN
-            SET @Success = 0;
-            SET @Message = 'Only active tickets can be cancelled.';
+            SELECT 0 AS Success, 'Only active tickets can be cancelled.' AS Message;
             ROLLBACK TRANSACTION;
             RETURN;
         END
         
-        -- 2. Calculate hours until departure
-        SET @HoursUntilDeparture = DATEDIFF(HOUR, GETDATE(), 
-            CAST(@TripDepartureDate AS DATETIME) + CAST(@TripDepartureTime AS DATETIME));
-        
-        -- 3. Calculate refund based on cancellation policy
-        -- Full refund if more than 1 hour before departure
-        IF @HoursUntilDeparture >= 1
-        BEGIN
-            SET @RefundAmount = @FinalPrice;
-        END
-        ELSE IF @HoursUntilDeparture >= 0
-        BEGIN
-            -- 50% refund if less than 1 hour but not departed yet
-            SET @RefundAmount = @FinalPrice * 0.5;
-        END
-        ELSE
-        BEGIN
-            SET @Success = 0;
-            SET @Message = 'Cannot cancel ticket after departure.';
-            ROLLBACK TRANSACTION;
-            RETURN;
-        END
-        
-        -- 4. Count seats to release
+        SET @RefundAmount = @FinalPrice;
         SELECT @SeatsCount = COUNT(*) FROM TicketSeats WHERE TicketID = @TicketID;
         
-        -- 5. Update ticket status
-        UPDATE Tickets 
-        SET Status = 'Cancelled', 
-            CancellationDate = GETDATE(),
-            RefundAmount = @RefundAmount
+        -- Update ticket
+        UPDATE Tickets SET Status = 'Cancelled', CancellationDate = GETDATE(), RefundAmount = @RefundAmount
         WHERE TicketID = @TicketID;
         
-        -- 6. Update trip available seats
-        UPDATE Trips 
-        SET AvailableSeats = AvailableSeats + @SeatsCount,
-            UpdatedAt = GETDATE()
+        -- Release seats
+        UPDATE Trips SET AvailableSeats = AvailableSeats + @SeatsCount, UpdatedAt = GETDATE()
         WHERE TripID = @TripID;
         
-        -- 7. Refund to user credit
-        UPDATE Users 
-        SET CreditBalance = CreditBalance + @RefundAmount,
-            UpdatedAt = GETDATE()
+        -- Refund
+        UPDATE Users SET CreditBalance = CreditBalance + @RefundAmount, UpdatedAt = GETDATE()
         WHERE UserID = @UserID;
         
-        -- 8. Record refund payment
+        -- Record refund
         INSERT INTO Payments (UserID, TicketID, Amount, PaymentType, PaymentMethod, Status)
         VALUES (@UserID, @TicketID, @RefundAmount, 'Refund', 'UserCredit', 'Completed');
         
-        -- 9. Log activity
-        INSERT INTO ActivityLogs (ActionType, TableName, RecordID, UserType, UserID, Description)
-        VALUES ('UPDATE', 'Tickets', @TicketID, 'User', @UserID, 
-                'Cancelled ticket, Refund: ' + CAST(@RefundAmount AS NVARCHAR) + ' TL');
-        
         COMMIT TRANSACTION;
         
-        SET @Success = 1;
-        SET @Message = 'Ticket cancelled successfully. Refund of ' + CAST(@RefundAmount AS NVARCHAR) + ' TL credited to your account.';
+        SELECT 1 AS Success, 'Ticket cancelled. Refund: ' + CAST(@RefundAmount AS NVARCHAR) + ' TL' AS Message;
         
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
-            
-        SET @Success = 0;
-        SET @Message = 'Error: ' + ERROR_MESSAGE();
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        SELECT 0 AS Success, 'Error: ' + ERROR_MESSAGE() AS Message;
     END CATCH
 END
 GO
 
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_GetUserTickets
--- Description: Gets all tickets for a specific user with filters
+-- sp_GetUserTickets: Get user's tickets
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_GetUserTickets
     @UserID INT,
-    @StatusFilter NVARCHAR(20) = NULL -- NULL for all, or 'Active', 'Completed', 'Cancelled'
+    @StatusFilter NVARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -816,15 +690,11 @@ BEGIN
         tr.DepartureTime,
         tr.ArrivalTime,
         tr.DurationMinutes,
-        t.TotalPrice,
-        t.DiscountAmount,
-        t.FinalPrice,
+        t.FinalPrice AS PaidAmount,
         t.Status,
         t.PurchaseDate,
-        t.CancellationDate,
-        t.RefundAmount,
-        STRING_AGG(CAST(s.SeatNumber AS NVARCHAR), ', ') AS SeatNumbers,
-        COUNT(ts.TicketSeatID) AS SeatCount
+        STRING_AGG(CAST(s.SeatNumber AS NVARCHAR), ', ') AS SeatNumber,
+        STRING_AGG(ts.PassengerName, ', ') AS PassengerName
     FROM Tickets t
     INNER JOIN Trips tr ON t.TripID = tr.TripID
     INNER JOIN Buses b ON tr.BusID = b.BusID
@@ -834,219 +704,64 @@ BEGIN
     LEFT JOIN TicketSeats ts ON t.TicketID = ts.TicketID
     LEFT JOIN Seats s ON ts.SeatID = s.SeatID
     WHERE t.UserID = @UserID
-      AND (@StatusFilter IS NULL OR t.Status = @StatusFilter)
+      AND (@StatusFilter IS NULL OR @StatusFilter = '' OR t.Status = @StatusFilter)
     GROUP BY t.TicketID, t.TicketCode, c.CompanyName, dep.CityName, arr.CityName,
              tr.DepartureDate, tr.DepartureTime, tr.ArrivalTime, tr.DurationMinutes,
-             t.TotalPrice, t.DiscountAmount, t.FinalPrice, t.Status, 
-             t.PurchaseDate, t.CancellationDate, t.RefundAmount
-    ORDER BY 
-        CASE t.Status 
-            WHEN 'Active' THEN 1 
-            WHEN 'Completed' THEN 2 
-            WHEN 'Cancelled' THEN 3 
-        END,
-        tr.DepartureDate DESC;
+             t.FinalPrice, t.Status, t.PurchaseDate
+    ORDER BY t.PurchaseDate DESC;
 END
 GO
 
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_AddUserCredit
--- Description: Adds credit to user account
+-- sp_AddUserCredit: Add credit to user account
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_AddUserCredit
     @UserID INT,
     @Amount DECIMAL(10,2),
-    @PaymentMethod NVARCHAR(20),
-    @Success BIT OUTPUT,
-    @Message NVARCHAR(500) OUTPUT
+    @PaymentMethod NVARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     
     IF @Amount <= 0 OR @Amount > 10000
     BEGIN
-        SET @Success = 0;
-        SET @Message = 'Invalid amount. Must be between 1 and 10000 TL.';
-        RETURN;
-    END
-    
-    IF @PaymentMethod NOT IN ('CreditCard', 'BankTransfer')
-    BEGIN
-        SET @Success = 0;
-        SET @Message = 'Invalid payment method.';
+        SELECT 0 AS Success, 'Invalid amount (1-10000 TL).' AS Message;
         RETURN;
     END
     
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- Update user credit
-        UPDATE Users 
-        SET CreditBalance = CreditBalance + @Amount,
-            UpdatedAt = GETDATE()
+        UPDATE Users SET CreditBalance = CreditBalance + @Amount, UpdatedAt = GETDATE()
         WHERE UserID = @UserID;
         
-        -- Record payment
         INSERT INTO Payments (UserID, Amount, PaymentType, PaymentMethod, Status)
         VALUES (@UserID, @Amount, 'CreditTopUp', @PaymentMethod, 'Completed');
         
-        -- Log activity
-        INSERT INTO ActivityLogs (ActionType, TableName, RecordID, UserType, UserID, Description)
-        VALUES ('UPDATE', 'Users', @UserID, 'User', @UserID, 
-                'Added credit: ' + CAST(@Amount AS NVARCHAR) + ' TL via ' + @PaymentMethod);
-        
         COMMIT TRANSACTION;
         
-        SET @Success = 1;
-        SET @Message = 'Credit of ' + CAST(@Amount AS NVARCHAR) + ' TL added successfully.';
+        SELECT 1 AS Success, CAST(@Amount AS NVARCHAR) + ' TL added successfully.' AS Message;
         
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
-            
-        SET @Success = 0;
-        SET @Message = 'Error: ' + ERROR_MESSAGE();
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        SELECT 0 AS Success, 'Error: ' + ERROR_MESSAGE() AS Message;
     END CATCH
 END
 GO
 
 -- ----------------------------------------------------------------------------
--- Stored Procedure: sp_GetDashboardStats (For Admins)
--- Description: Gets dashboard statistics
--- ----------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE sp_GetDashboardStats
-    @CompanyID INT = NULL -- NULL for system-wide stats
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    -- General statistics
-    SELECT
-        (SELECT COUNT(*) FROM Companies WHERE IsActive = 1 AND (@CompanyID IS NULL OR CompanyID = @CompanyID)) AS TotalCompanies,
-        (SELECT COUNT(*) FROM FirmAdmins WHERE IsActive = 1 AND (@CompanyID IS NULL OR CompanyID = @CompanyID)) AS TotalFirmAdmins,
-        (SELECT COUNT(*) FROM Users WHERE IsActive = 1) AS TotalUsers,
-        (SELECT COUNT(*) FROM Coupons WHERE IsActive = 1 AND ExpiryDate >= CAST(GETDATE() AS DATE)) AS ActiveCoupons,
-        (SELECT COUNT(*) FROM Trips WHERE Status = 'Active' AND DepartureDate >= CAST(GETDATE() AS DATE) 
-            AND (@CompanyID IS NULL OR BusID IN (SELECT BusID FROM Buses WHERE CompanyID = @CompanyID))) AS ActiveTrips,
-        (SELECT COUNT(*) FROM Tickets WHERE Status = 'Active' 
-            AND TripID IN (SELECT TripID FROM Trips WHERE DepartureDate >= CAST(GETDATE() AS DATE)
-                AND (@CompanyID IS NULL OR BusID IN (SELECT BusID FROM Buses WHERE CompanyID = @CompanyID)))) AS UpcomingTickets,
-        (SELECT ISNULL(SUM(FinalPrice), 0) FROM Tickets 
-            WHERE Status IN ('Active', 'Completed') 
-            AND MONTH(PurchaseDate) = MONTH(GETDATE()) 
-            AND YEAR(PurchaseDate) = YEAR(GETDATE())
-            AND (@CompanyID IS NULL OR TripID IN (SELECT TripID FROM Trips WHERE BusID IN (SELECT BusID FROM Buses WHERE CompanyID = @CompanyID)))) AS MonthlyRevenue;
-END
-GO
-
--- ----------------------------------------------------------------------------
--- Stored Procedure: sp_CreateTrip (For Firm Admins)
--- Description: Creates a new trip
--- ----------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE sp_CreateTrip
-    @BusID INT,
-    @DepartureCityID INT,
-    @ArrivalCityID INT,
-    @DepartureDate DATE,
-    @DepartureTime TIME,
-    @ArrivalTime TIME,
-    @DurationMinutes INT,
-    @Price DECIMAL(10,2),
-    @CreatedByFirmAdminID INT,
-    @TripID INT OUTPUT,
-    @Success BIT OUTPUT,
-    @Message NVARCHAR(500) OUTPUT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    DECLARE @TotalSeats INT;
-    DECLARE @TripCode NVARCHAR(20);
-    DECLARE @CompanyID INT;
-    
-    BEGIN TRY
-        -- Validate bus belongs to admin's company
-        SELECT @CompanyID = b.CompanyID, @TotalSeats = b.TotalSeats
-        FROM Buses b
-        INNER JOIN FirmAdmins fa ON b.CompanyID = fa.CompanyID
-        WHERE b.BusID = @BusID AND fa.FirmAdminID = @CreatedByFirmAdminID;
-        
-        IF @CompanyID IS NULL
-        BEGIN
-            SET @Success = 0;
-            SET @Message = 'Bus not found or you do not have permission.';
-            RETURN;
-        END
-        
-        -- Check for conflicting trips
-        IF EXISTS (
-            SELECT 1 FROM Trips 
-            WHERE BusID = @BusID 
-              AND DepartureDate = @DepartureDate 
-              AND Status = 'Active'
-              AND (
-                  (@DepartureTime BETWEEN DepartureTime AND ArrivalTime)
-                  OR (@ArrivalTime BETWEEN DepartureTime AND ArrivalTime)
-              )
-        )
-        BEGIN
-            SET @Success = 0;
-            SET @Message = 'Bus has a conflicting trip at this time.';
-            RETURN;
-        END
-        
-        -- Generate trip code
-        SET @TripCode = 'TRP-' + CAST(YEAR(@DepartureDate) AS NVARCHAR) + '-' + RIGHT('000000' + CAST(NEXT VALUE FOR TripSequence AS NVARCHAR), 6);
-        
-        INSERT INTO Trips (TripCode, BusID, DepartureCityID, ArrivalCityID, DepartureDate, 
-                          DepartureTime, ArrivalTime, DurationMinutes, Price, AvailableSeats, Status)
-        VALUES (@TripCode, @BusID, @DepartureCityID, @ArrivalCityID, @DepartureDate,
-                @DepartureTime, @ArrivalTime, @DurationMinutes, @Price, @TotalSeats, 'Active');
-        
-        SET @TripID = SCOPE_IDENTITY();
-        
-        -- Log activity
-        INSERT INTO ActivityLogs (ActionType, TableName, RecordID, UserType, UserID, Description)
-        VALUES ('INSERT', 'Trips', @TripID, 'FirmAdmin', @CreatedByFirmAdminID, 
-                'Created trip ' + @TripCode);
-        
-        SET @Success = 1;
-        SET @Message = 'Trip created successfully. Trip Code: ' + @TripCode;
-        
-    END TRY
-    BEGIN CATCH
-        SET @Success = 0;
-        SET @Message = 'Error: ' + ERROR_MESSAGE();
-        SET @TripID = NULL;
-    END CATCH
-END
-GO
-
--- Create sequence for trip codes
-IF NOT EXISTS (SELECT * FROM sys.sequences WHERE name = 'TripSequence')
-BEGIN
-    CREATE SEQUENCE TripSequence
-    START WITH 1
-    INCREMENT BY 1;
-END
-GO
-
--- ----------------------------------------------------------------------------
--- Stored Procedure: sp_ValidateCoupon
--- Description: Validates a coupon code for a user
+-- sp_ValidateCoupon: Validate coupon code
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE sp_ValidateCoupon
     @CouponCode NVARCHAR(50),
-    @UserID INT,
-    @IsValid BIT OUTPUT,
-    @DiscountRate DECIMAL(5,2) OUTPUT,
-    @Message NVARCHAR(500) OUTPUT
+    @UserID INT
 AS
 BEGIN
     SET NOCOUNT ON;
     
     DECLARE @CouponID INT;
+    DECLARE @DiscountRate DECIMAL(5,2);
     DECLARE @UsageLimit INT;
     DECLARE @TimesUsed INT;
     DECLARE @ExpiryDate DATE;
@@ -1059,152 +774,92 @@ BEGIN
     
     IF @CouponID IS NULL
     BEGIN
-        SET @IsValid = 0;
-        SET @DiscountRate = 0;
-        SET @Message = 'Coupon code not found.';
+        SELECT 0 AS IsValid, 0 AS DiscountRate, 'Coupon not found.' AS Message;
         RETURN;
     END
     
     IF @IsActive = 0
     BEGIN
-        SET @IsValid = 0;
-        SET @DiscountRate = 0;
-        SET @Message = 'Coupon is no longer active.';
+        SELECT 0 AS IsValid, 0 AS DiscountRate, 'Coupon is inactive.' AS Message;
         RETURN;
     END
     
     IF @ExpiryDate < CAST(GETDATE() AS DATE)
     BEGIN
-        SET @IsValid = 0;
-        SET @DiscountRate = 0;
-        SET @Message = 'Coupon has expired.';
+        SELECT 0 AS IsValid, 0 AS DiscountRate, 'Coupon expired.' AS Message;
         RETURN;
     END
     
     IF @TimesUsed >= @UsageLimit
     BEGIN
-        SET @IsValid = 0;
-        SET @DiscountRate = 0;
-        SET @Message = 'Coupon usage limit reached.';
+        SELECT 0 AS IsValid, 0 AS DiscountRate, 'Usage limit reached.' AS Message;
         RETURN;
     END
     
-    -- Check if user already used this coupon
     IF EXISTS (SELECT 1 FROM UserCoupons WHERE UserID = @UserID AND CouponID = @CouponID AND IsUsed = 1)
     BEGIN
-        SET @IsValid = 0;
-        SET @DiscountRate = 0;
-        SET @Message = 'You have already used this coupon.';
+        SELECT 0 AS IsValid, 0 AS DiscountRate, 'Already used this coupon.' AS Message;
         RETURN;
     END
     
-    SET @IsValid = 1;
-    SET @Message = 'Coupon is valid! ' + CAST(@DiscountRate AS NVARCHAR) + '% discount will be applied.';
+    SELECT 1 AS IsValid, @DiscountRate AS DiscountRate, CAST(@DiscountRate AS NVARCHAR) + '% discount!' AS Message;
+END
+GO
+
+-- ----------------------------------------------------------------------------
+-- sp_GetDashboardStats: Admin dashboard stats
+-- ----------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE sp_GetDashboardStats
+    @CompanyID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT
+        (SELECT COUNT(*) FROM Users WHERE IsActive = 1 AND Role = 'User') AS TotalUsers,
+        (SELECT COUNT(*) FROM Trips WHERE Status = 'Active' AND DepartureDate >= CAST(GETDATE() AS DATE)) AS TotalTrips,
+        (SELECT COUNT(*) FROM Tickets WHERE Status = 'Active') AS TotalTickets,
+        (SELECT ISNULL(SUM(FinalPrice), 0) FROM Tickets WHERE Status IN ('Active', 'Completed')) AS TotalRevenue,
+        (SELECT COUNT(*) FROM Trips WHERE Status = 'Active' AND DepartureDate = CAST(GETDATE() AS DATE)) AS ActiveTrips;
 END
 GO
 
 -- ============================================================================
--- SECTION 5: VIEWS FOR REPORTING
+-- SECTION 6: SAMPLE DATA
 -- ============================================================================
 
--- View: Active Trips with Details
-CREATE OR ALTER VIEW vw_ActiveTripsDetails AS
-SELECT 
-    t.TripID,
-    t.TripCode,
-    c.CompanyName,
-    c.Rating AS CompanyRating,
-    dep.CityName AS DepartureCity,
-    arr.CityName AS ArrivalCity,
-    t.DepartureDate,
-    t.DepartureTime,
-    t.ArrivalTime,
-    t.DurationMinutes,
-    t.Price,
-    t.AvailableSeats,
-    b.TotalSeats,
-    b.TotalSeats - t.AvailableSeats AS BookedSeats,
-    CAST((CAST(b.TotalSeats - t.AvailableSeats AS FLOAT) / b.TotalSeats) * 100 AS DECIMAL(5,2)) AS OccupancyRate,
-    b.HasWifi,
-    b.HasTV,
-    b.HasRefreshments,
-    b.HasPowerOutlet,
-    t.Status
-FROM Trips t
-INNER JOIN Buses b ON t.BusID = b.BusID
-INNER JOIN Companies c ON b.CompanyID = c.CompanyID
-INNER JOIN Cities dep ON t.DepartureCityID = dep.CityID
-INNER JOIN Cities arr ON t.ArrivalCityID = arr.CityID
-WHERE t.Status = 'Active' AND t.DepartureDate >= CAST(GETDATE() AS DATE);
-GO
-
--- View: Sales Report
-CREATE OR ALTER VIEW vw_SalesReport AS
-SELECT 
-    c.CompanyID,
-    c.CompanyName,
-    YEAR(tk.PurchaseDate) AS Year,
-    MONTH(tk.PurchaseDate) AS Month,
-    COUNT(DISTINCT tk.TicketID) AS TotalTickets,
-    SUM(ts.SeatCount) AS TotalSeats,
-    SUM(tk.FinalPrice) AS TotalRevenue,
-    SUM(tk.DiscountAmount) AS TotalDiscounts,
-    AVG(tk.FinalPrice) AS AvgTicketPrice
-FROM Tickets tk
-INNER JOIN Trips t ON tk.TripID = t.TripID
-INNER JOIN Buses b ON t.BusID = b.BusID
-INNER JOIN Companies c ON b.CompanyID = c.CompanyID
-INNER JOIN (
-    SELECT TicketID, COUNT(*) AS SeatCount FROM TicketSeats GROUP BY TicketID
-) ts ON tk.TicketID = ts.TicketID
-WHERE tk.Status IN ('Active', 'Completed')
-GROUP BY c.CompanyID, c.CompanyName, YEAR(tk.PurchaseDate), MONTH(tk.PurchaseDate);
-GO
-
--- ============================================================================
--- SECTION 6: SAMPLE DATA INSERTION
--- ============================================================================
-
--- Insert Cities
+-- Cities
 INSERT INTO Cities (CityName) VALUES 
 ('Istanbul'), ('Ankara'), ('Izmir'), ('Antalya'), ('Bursa'),
 ('Adana'), ('Konya'), ('Gaziantep'), ('Mersin'), ('Kayseri'),
 ('Eskisehir'), ('Trabzon'), ('Samsun'), ('Denizli'), ('Mugla');
 GO
 
--- Insert System Admin
-INSERT INTO SystemAdmins (Username, Email, PasswordHash, FirstName, LastName)
-VALUES ('admin', 'admin@buyticket.com', 'hashed_password_here', 'System', 'Admin');
-GO
-
--- Insert Companies
+-- Companies
 INSERT INTO Companies (CompanyName, Phone, Email, Address, Rating, TotalRatings) VALUES
 ('Metro Turizm', '0850 222 33 44', 'info@metroturizm.com', 'Istanbul, Turkey', 4.8, 1520),
 ('Pamukkale Turizm', '0850 333 44 55', 'info@pamukkale.com', 'Denizli, Turkey', 4.5, 1280),
-('Ali Osman Ulusoy', '0850 444 55 66', 'info@ulusoy.com', 'Trabzon, Turkey', 4.9, 980),
 ('Kamil Koc', '0850 555 66 77', 'info@kamilkoc.com', 'Ankara, Turkey', 4.6, 1150);
 GO
 
--- Insert Firm Admins
+-- Firm Admins (password: password123)
 INSERT INTO FirmAdmins (CompanyID, FirstName, LastName, Email, Phone, PasswordHash) VALUES
-(1, 'Mehmet', 'Demir', 'mehmet.demir@metroturizm.com', '0532 111 22 33', 'hashed_password'),
-(1, 'Ayse', 'Yilmaz', 'ayse.yilmaz@metroturizm.com', '0533 222 33 44', 'hashed_password'),
-(2, 'Ali', 'Kaya', 'ali.kaya@pamukkale.com', '0534 333 44 55', 'hashed_password'),
-(3, 'Fatma', 'Ozturk', 'fatma.ozturk@ulusoy.com', '0535 444 55 66', 'hashed_password'),
-(4, 'Hasan', 'Celik', 'hasan.celik@kamilkoc.com', '0536 555 66 77', 'hashed_password');
+(1, 'Mehmet', 'Demir', 'mehmet@metroturizm.com', '0532 111 22 33', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f'),
+(2, 'Ali', 'Kaya', 'ali@pamukkale.com', '0534 333 44 55', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f'),
+(3, 'Hasan', 'Celik', 'hasan@kamilkoc.com', '0536 555 66 77', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f');
 GO
 
--- Insert Buses
+-- Buses
 INSERT INTO Buses (CompanyID, PlateNumber, TotalSeats, HasWifi, HasTV, HasRefreshments, HasPowerOutlet, HasEntertainment) VALUES
 (1, '34 ABC 123', 40, 1, 1, 1, 1, 1),
 (1, '34 DEF 456', 40, 1, 0, 1, 1, 0),
 (2, '20 GHI 789', 40, 1, 1, 1, 0, 0),
 (2, '20 JKL 012', 40, 1, 0, 1, 0, 0),
-(3, '61 MNO 345', 40, 1, 1, 1, 1, 1),
-(4, '06 PRS 678', 40, 1, 1, 1, 1, 0);
+(3, '06 MNO 345', 40, 1, 1, 1, 1, 1),
+(3, '06 PRS 678', 40, 1, 1, 1, 1, 0);
 GO
 
--- Insert Seats for each bus (40 seats per bus: 10 rows x 4 seats)
+-- Seats (40 seats per bus)
 DECLARE @BusID INT = 1;
 WHILE @BusID <= 6
 BEGIN
@@ -1224,53 +879,50 @@ BEGIN
 END
 GO
 
--- Insert Sample Users
-INSERT INTO Users (FirstName, LastName, Email, Phone, PasswordHash, IDNumber, CreditBalance, BirthDate) VALUES
-('Ahmet', 'Yilmaz', 'ahmet.yilmaz@email.com', '0532 111 22 33', 'hashed_password', '12345678901', 1500.00, '1990-05-15'),
-('Fatma', 'Demir', 'fatma.demir@email.com', '0533 222 33 44', 'hashed_password', '23456789012', 800.00, '1985-08-20'),
-('Mehmet', 'Kaya', 'mehmet.kaya@email.com', '0534 333 44 55', 'hashed_password', '34567890123', 250.00, '1995-12-10'),
-('Ayse', 'Ozturk', 'ayse.ozturk@email.com', '0535 444 55 66', 'hashed_password', '45678901234', 2000.00, '1988-03-25'),
-('Ali', 'Celik', 'ali.celik@email.com', '0536 555 66 77', 'hashed_password', '56789012345', 500.00, '1992-07-30');
+-- Users (password: password123 = ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f)
+INSERT INTO Users (FirstName, LastName, Email, Phone, PasswordHash, IDNumber, Role, CreditBalance, BirthDate) VALUES
+('Ahmet', 'Yilmaz', 'ahmet.yilmaz@email.com', '0532 111 22 33', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', '12345678901', 'User', 1500.00, '1990-05-15'),
+('Fatma', 'Demir', 'fatma.demir@email.com', '0533 222 33 44', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', '23456789012', 'User', 800.00, '1985-08-20'),
+('Mehmet', 'Kaya', 'mehmet.kaya@email.com', '0534 333 44 55', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', '34567890123', 'User', 250.00, '1995-12-10'),
+('Admin', 'System', 'admin@busticket.com', '0500 000 00 00', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', '99999999999', 'SystemAdmin', 0.00, '1980-01-01');
 GO
 
--- Insert Coupons
-INSERT INTO Coupons (CouponCode, DiscountRate, UsageLimit, ExpiryDate, Description, CreatedBy) VALUES
-('DISCOUNT10', 10.00, 1000, '2025-12-31', '10% discount on all tickets', 1),
-('DISCOUNT20', 20.00, 500, '2025-11-30', '20% discount - Limited time offer', 1),
-('SUMMER25', 15.00, 2000, '2025-08-31', 'Summer special - 15% off', 1),
-('WELCOME50', 50.00, 100, '2025-06-30', 'New user welcome bonus - 50% off first ticket', 1),
-('BAYRAM25', 25.00, 500, '2025-04-15', 'Holiday special discount', 1);
+-- Coupons
+INSERT INTO Coupons (CouponCode, DiscountRate, UsageLimit, ExpiryDate, Description) VALUES
+('DISCOUNT10', 10.00, 1000, '2025-12-31', '10% discount'),
+('DISCOUNT20', 20.00, 500, '2025-12-31', '20% discount'),
+('SUMMER25', 15.00, 2000, '2025-08-31', 'Summer special 15% off'),
+('WELCOME50', 50.00, 100, '2025-12-31', 'Welcome bonus 50% off');
 GO
 
--- Assign some coupons to users
-INSERT INTO UserCoupons (UserID, CouponID) VALUES
-(1, 1), (1, 2),
-(2, 1), (2, 3),
-(3, 1),
-(4, 1), (4, 2), (4, 3),
-(5, 1);
+-- Assign coupons to users
+INSERT INTO UserCoupons (UserID, CouponID) VALUES (1, 1), (1, 2), (2, 1), (2, 3), (3, 1);
 GO
 
--- Insert Sample Trips (Future dates)
+-- Sample Trips (Future dates)
 DECLARE @Today DATE = CAST(GETDATE() AS DATE);
-INSERT INTO Trips (TripCode, BusID, DepartureCityID, ArrivalCityID, DepartureDate, DepartureTime, ArrivalTime, DurationMinutes, Price, AvailableSeats) VALUES
-('TRP-2025-000001', 1, 1, 2, DATEADD(DAY, 1, @Today), '09:00', '14:30', 330, 350.00, 40),
-('TRP-2025-000002', 1, 1, 2, DATEADD(DAY, 1, @Today), '13:30', '19:00', 330, 350.00, 40),
-('TRP-2025-000003', 1, 1, 2, DATEADD(DAY, 1, @Today), '20:00', '01:30', 330, 320.00, 40),
-('TRP-2025-000004', 2, 1, 2, DATEADD(DAY, 2, @Today), '10:00', '15:30', 330, 340.00, 40),
-('TRP-2025-000005', 3, 1, 3, DATEADD(DAY, 1, @Today), '08:00', '16:00', 480, 420.00, 40),
-('TRP-2025-000006', 3, 1, 3, DATEADD(DAY, 2, @Today), '14:00', '22:00', 480, 400.00, 40),
-('TRP-2025-000007', 4, 2, 3, DATEADD(DAY, 1, @Today), '09:30', '17:30', 480, 380.00, 40),
-('TRP-2025-000008', 5, 1, 4, DATEADD(DAY, 3, @Today), '22:00', '08:00', 600, 450.00, 40),
-('TRP-2025-000009', 6, 2, 4, DATEADD(DAY, 2, @Today), '23:00', '07:30', 510, 380.00, 40),
-('TRP-2025-000010', 6, 2, 1, DATEADD(DAY, 4, @Today), '08:00', '13:30', 330, 350.00, 40);
+
+INSERT INTO Trips (TripCode, BusID, DepartureCityID, ArrivalCityID, DepartureDate, DepartureTime, ArrivalTime, DurationMinutes, Price, AvailableSeats, Status) VALUES
+('TRP-2025-000001', 1, 1, 2, DATEADD(DAY, 1, @Today), '09:00', '14:30', 330, 350.00, 40, 'Active'),
+('TRP-2025-000002', 1, 1, 2, DATEADD(DAY, 1, @Today), '13:30', '19:00', 330, 350.00, 40, 'Active'),
+('TRP-2025-000003', 1, 1, 2, DATEADD(DAY, 1, @Today), '20:00', '01:30', 330, 320.00, 40, 'Active'),
+('TRP-2025-000004', 2, 1, 2, DATEADD(DAY, 2, @Today), '10:00', '15:30', 330, 340.00, 40, 'Active'),
+('TRP-2025-000005', 3, 1, 3, DATEADD(DAY, 1, @Today), '08:00', '16:00', 480, 420.00, 40, 'Active'),
+('TRP-2025-000006', 3, 1, 3, DATEADD(DAY, 2, @Today), '14:00', '22:00', 480, 400.00, 40, 'Active'),
+('TRP-2025-000007', 4, 2, 3, DATEADD(DAY, 1, @Today), '09:30', '17:30', 480, 380.00, 40, 'Active'),
+('TRP-2025-000008', 5, 1, 4, DATEADD(DAY, 3, @Today), '22:00', '08:00', 600, 450.00, 40, 'Active'),
+('TRP-2025-000009', 6, 2, 4, DATEADD(DAY, 2, @Today), '23:00', '07:30', 510, 380.00, 40, 'Active'),
+('TRP-2025-000010', 6, 2, 1, DATEADD(DAY, 4, @Today), '08:00', '13:30', 330, 350.00, 40, 'Active');
 GO
 
--- Update sequence values
-ALTER SEQUENCE TicketSequence RESTART WITH 1000;
-ALTER SEQUENCE TripSequence RESTART WITH 11;
+-- ============================================================================
+-- DONE!
+-- ============================================================================
+PRINT '========================================';
+PRINT 'BusTicketSystem Database Created!';
+PRINT '========================================';
+PRINT 'Test Accounts:';
+PRINT '  User: ahmet.yilmaz@email.com / password123';
+PRINT '  Admin: admin@busticket.com / password123';
+PRINT '========================================';
 GO
-
-PRINT 'Database created successfully with all tables, stored procedures, and sample data!';
-GO
-

@@ -361,12 +361,20 @@
         </div>
 
         <script>
+            // API Base URL
+            const API_URL = 'http://localhost:5000/api';
+
             // ===== REGISTER FORM HANDLING =====
-            function handleRegister(event) {
+            async function handleRegister(event) {
                 event.preventDefault();
 
+                const name = document.getElementById('name').value;
+                const surname = document.getElementById('surname').value;
+                const email = document.getElementById('email').value;
+                const phone = document.getElementById('phone').value;
                 const password = document.getElementById('password').value;
                 const passwordConfirm = document.getElementById('password-confirm').value;
+                const idNumber = document.getElementById('id').value;
 
                 // Password validation
                 if (password !== passwordConfirm) {
@@ -374,16 +382,52 @@
                     return;
                 }
 
+                if (password.length < 6) {
+                    alert('Password must be at least 6 characters!');
+                    return;
+                }
+
                 // ID validation
-                const id = document.getElementById('id').value;
-                if (id.length !== 11) {
+                if (idNumber.length !== 11) {
                     alert('ID no must be 11 digits!');
                     return;
                 }
 
-                // Success message
-                alert('Register succeed! You are redirected to the login page...');
-                // In real application: window.location.href='login.html';
+                const btn = document.querySelector('.btn-register');
+                btn.disabled = true;
+                btn.textContent = 'Signing up...';
+
+                try {
+                    const response = await fetch(`${API_URL}/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            first_name: name,
+                            last_name: surname,
+                            email: email,
+                            phone: phone,
+                            password: password,
+                            id_number: idNumber
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Registration successful! You will be redirected to login page...');
+                        window.location.href = 'login.html';
+                    } else {
+                        alert(data.message || 'Registration failed. Please try again.');
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    alert('Connection error. Please make sure the server is running.');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Sign up';
+                }
             }
         </script>
     </body>

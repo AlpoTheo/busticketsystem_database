@@ -272,7 +272,7 @@
                     <li><a href="#about">About Us</a></li>
                     <li><a href="#contact">Contact Us</a></li>
                 </ul>
-                <div class="auth-buttons">
+                <div class="auth-buttons" id="auth-buttons">
                     <a href="login.html" class="btn btn-login">Log in</a>
                     <a href="register.html" class="btn btn-register">Sign up</a>
                 </div>
@@ -345,6 +345,70 @@
         </footer>
 
         <script>
+            // API Base URL
+            const API_URL = 'http://localhost:5000/api';
+
+            // Load cities from API
+            async function loadCities() {
+                try {
+                    const response = await fetch(`${API_URL}/cities`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const fromSelect = document.getElementById('fromwhere');
+                        const toSelect = document.getElementById('towhere');
+                        
+                        // Clear existing options
+                        fromSelect.innerHTML = '<option value="">Select City</option>';
+                        toSelect.innerHTML = '<option value="">Select City</option>';
+                        
+                        // Add cities from API
+                        data.cities.forEach(city => {
+                            const option1 = new Option(city.city_name, city.city_id);
+                            const option2 = new Option(city.city_name, city.city_id);
+                            fromSelect.add(option1);
+                            toSelect.add(option2);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading cities:', error);
+                }
+            }
+
+            // Check login status and update UI
+            function updateAuthUI() {
+                const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+                const authButtons = document.getElementById('auth-buttons');
+                
+                if (isLoggedIn) {
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    authButtons.innerHTML = `
+                        <span style="color: white; margin-right: 10px;">Welcome, ${user.first_name || 'User'}</span>
+                        <span style="background: var(--orange); color: white; padding: 0.5rem 1rem; border-radius: 20px; margin-right: 10px;">
+                            💳 ${(user.credit_balance || 0).toLocaleString()} TL
+                        </span>
+                        <a href="MyTickets.html" class="btn btn-login">My Tickets</a>
+                        <button onclick="logout()" class="btn btn-register" style="border: none; cursor: pointer;">Logout</button>
+                    `;
+                }
+            }
+
+            // Logout function
+            async function logout() {
+                try {
+                    await fetch(`${API_URL}/logout`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch (e) {
+                    console.error('Logout error:', e);
+                }
+                
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('user');
+                window.location.reload();
+            }
+
             // Search form functionality
             document.querySelector('.search-form').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -355,6 +419,11 @@
                 
                 if (!fromCity || !toCity || !date) {
                     alert('Please fill in all fields to search for services.');
+                    return;
+                }
+
+                if (fromCity === toCity) {
+                    alert('Departure and arrival cities cannot be the same.');
                     return;
                 }
                 
@@ -368,8 +437,14 @@
                 window.location.href = `services.html?${searchParams.toString()}`;
             });
 
-            // Set minimum date to today
-            document.getElementById('date').min = new Date().toISOString().split('T')[0];
+            // Initialize on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                loadCities();
+                updateAuthUI();
+                
+                // Set minimum date to today
+                document.getElementById('date').min = new Date().toISOString().split('T')[0];
+            });
         </script>
     </body>
 </html>
