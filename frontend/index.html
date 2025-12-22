@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Platform for Bus Ticket</title>
+        <style>
+            /* ===== RESET & BASE STYLES ===== */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            /* ===== CSS VARIABLES ===== */
+            :root {
+                --primary-brown: #5D4037;
+                --light-brown: #8D6E63;
+                --orange: #FF6F00;
+                --light-orange: #FF8F00;
+                --light-yellow: #FFC107;
+                --white: #FFFFFF;
+                --cream: #FFF8E1;
+                --text-dark: #3E2723;
+            }
+
+            /* ===== BODY & LAYOUT ===== */
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+                min-height: 100vh;
+                color: var(--text-dark);
+            }
+            /* ===== HEADER & NAVIGATION ===== */
+            header {
+                background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+            }
+
+            nav {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 1rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .logo {
+                font-size: 1.8rem;
+                font-weight: bold;
+                color: var(--white);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .logo::before {
+                content: "🚌";
+                font-size: 2rem;
+            }
+
+            .nav-links {
+                display: flex;
+                gap: 2rem;
+                list-style: none;
+            }
+
+            .nav-links a {
+                color: var(--white);
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.3s;
+                padding: 0.5rem 1rem;
+                border-radius: 5px;
+            }
+
+            .nav-links a:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: var(--light-yellow);
+            }
+
+            .auth-buttons {
+                display: flex;
+                gap: 1rem;
+            }
+
+            /* ===== BUTTONS ===== */
+            .btn {
+                padding: 0.6rem 1.5rem;
+                border: none;
+                border-radius: 25px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                text-decoration: none;
+                display: inline-block;
+            }
+
+            .btn-login {
+                background: transparent;
+                color: var(--white);
+                border: 2px solid var(--white);
+            }
+
+            .btn-login:hover {
+                background: var(--white);
+                color: var(--primary-brown);
+            }
+
+            .btn-register {
+                background: var(--orange);
+                color: var(--white);
+            }
+
+            .btn-register:hover {
+                background: var(--light-orange);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(255,111, 0, 0.3);
+            }
+
+            /* ===== HERO SECTION ===== */
+            .hero {
+                max-width: 1200px;
+                margin: 3rem auto;
+                padding: 0 2rem;
+                text-align: center;
+            }
+
+
+            .hero p {
+                font-size: 1.2rem;
+                color: var(--light-brown);
+                margin-bottom: 3rem;
+            }
+
+            /* ===== SEARCH FORM ===== */
+            .search-container {
+                background: var(--white);
+                padding: 2.5rem;
+                border-radius: 20px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            .search-form {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.5rem;
+            }
+
+
+            .form-group label {
+                font-weight: 600;
+                color: var(--primary-brown);
+                margin-bottom: 0.5rem;
+                font-size: 0.9rem;
+            }
+            
+            .form-group input,
+            .form-group select {
+                padding: 0.8rem;
+                border: 2px solid var(--cream);
+                border-radius: 10px;
+                font-size: 1rem;
+                transition: all 0.3s;
+                background: var(--cream);
+            }
+
+            .form-group input:focus,
+            .form-group select:focus {
+                outline: none;
+                border-color: var(--orange);
+                background: var(--white);
+            }
+
+            .btn-search {
+                background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+                color: var(--white);
+                padding: 1rem 2rem;
+                border: none;
+                border-radius: 10px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                margin-top: 1.5rem;
+                grid-column: 1 / -1;
+            }
+
+            .btn-search:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 111, 0, 0.4);
+            }
+
+            /* ===== FEATURES SECTION ===== */
+            .features {
+                max-width: 1200px;
+                margin: 5rem auto;
+                padding: 0 2rem;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 2rem;
+            }
+
+            .feature-card {
+                background: var(--white);
+                padding: 2rem;
+                border-radius: 15px;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                transition: all 0.3s;
+            }
+
+            .feature-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            }
+
+            .feature-icon {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+            }
+
+            .feature-card h3 {
+                color: var(--primary-brown);
+                margin-bottom: 0.5rem;
+                font-size: 1.3rem;
+            }
+
+            .feature-card p {
+                color: var(--light-brown);
+                line-height: 1.6;
+            }
+
+            /* ===== FOOTER ===== */
+            footer {
+                background: var(--primary-brown);
+                color: var(--white);
+                text-align: center;
+                padding: 2rem;
+                margin-top: 5rem;
+            }
+
+            /* ===== RESPONSIVE DESIGN ===== */
+            @media (max-width: 768px) {
+                .nav-links {
+                    display: none;
+                }
+                
+                .hero h1 {
+                    font-size: 2rem;
+                }
+                
+                .search-form {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav>
+                <div class="logo">BuyTicket</div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home Page</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#contact">Contact Us</a></li>
+                </ul>
+                <div class="auth-buttons">
+                    <a href="login.html" class="btn btn-login">Log in</a>
+                    <a href="register.html" class="btn btn-register">Sign up</a>
+                </div>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h1>Buy Your Bus Ticket Easily</h1>
+                <p>Comfortable journey everywhere in Turkey.</p>
+
+                <div class="search-container">
+                    <form class="search-form">
+                        <div class="form-group">
+                            <label for="fromwhere">From</label>
+                            <select id="fromwhere" name="fromwhere" required>
+                                <option value="">Select City</option>
+                                <option value="istanbul">Istanbul</option>
+                                <option value="ankara">Ankara</option>
+                                <option value="izmir">Izmir</option>
+                                <option value="antalya">Antalya</option>
+                                <option value="bursa">Bursa</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="towhere">To</label>
+                            <select id="towhere" name="towhere" required>
+                                <option value="">Select City</option>
+                                <option value="istanbul">Istanbul</option>
+                                <option value="ankara">Ankara</option>
+                                <option value="izmir">Izmir</option>
+                                <option value="antalya">Antalya</option>
+                                <option value="bursa">Bursa</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" name="date" required>
+                        </div>
+
+                        <button type="submit" class="btn-search">Search Services</button>
+                    </form>
+                </div>
+            </section>
+            <section class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">💳</div>
+                    <h3>Secure Payment</h3>
+                    <p>Buy tickets safely and quickly with our secure payment system.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎫</div>
+                    <h3>Discount Coupons</h3>
+                    <p>Get special prices with discount coupons.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⏰</div>
+                    <h3>Flexible Cancellation</h3>
+                    <p>Free cancellation up to 1 hour before departure.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 BuyTicket - All rights reserved.</p>
+        </footer>
+
+        <script>
+            // Search form functionality
+            document.querySelector('.search-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const fromCity = document.getElementById('fromwhere').value;
+                const toCity = document.getElementById('towhere').value;
+                const date = document.getElementById('date').value;
+                
+                if (!fromCity || !toCity || !date) {
+                    alert('Please fill in all fields to search for services.');
+                    return;
+                }
+                
+                // Redirect to services page with search parameters
+                const searchParams = new URLSearchParams({
+                    from: fromCity,
+                    to: toCity,
+                    date: date
+                });
+                
+                window.location.href = `services.html?${searchParams.toString()}`;
+            });
+
+            // Set minimum date to today
+            document.getElementById('date').min = new Date().toISOString().split('T')[0];
+        </script>
+    </body>
+</html>

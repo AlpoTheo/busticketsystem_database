@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Admin Panel - BuyTicket</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-brown: #5D4037;
+            --light-brown: #8D6E63;
+            --orange: #FF6F00;
+            --light-orange: #FF8F00;
+            --yellow: #FFC107;
+            --light-yellow: #FFD54F;
+            --white: #FFFFFF;
+            --cream: #FFF8E1;
+            --text-dark: #3E2723;
+            --green: #4CAF50;
+            --red: #F44336;
+            --blue: #2196F3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        .firma-badge {
+            background: var(--orange);
+            color: var(--white);
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .user-info {
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .company-info {
+            text-align: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--cream);
+            margin-bottom: 1.5rem;
+        }
+
+        .company-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1rem;
+            color: var(--white);
+        }
+
+        .company-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-brown);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem;
+            color: var(--text-dark);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background: var(--cream);
+            color: var(--orange);
+        }
+
+        /* Main Content */
+        .main-content {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--cream);
+        }
+
+        .page-header h2 {
+            color: var(--primary-brown);
+            font-size: 2rem;
+        }
+
+        .btn-add {
+            background: var(--orange);
+            color: var(--white);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-add:hover {
+            background: var(--light-orange);
+            transform: translateY(-2px);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            color: var(--white);
+            box-shadow: 0 4px 12px rgba(255, 111, 0, 0.2);
+        }
+
+        .stat-card.blue {
+            background: linear-gradient(135deg, var(--blue) 0%, #42A5F5 100%);
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, var(--green) 0%, #66BB6A 100%);
+        }
+
+        .stat-card.brown {
+            background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--cream);
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--primary-brown);
+            font-weight: 600;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--cream);
+        }
+
+        tr:hover {
+            background: var(--cream);
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: var(--green);
+            color: var(--white);
+        }
+
+        .status-badge.completed {
+            background: var(--light-brown);
+            color: var(--white);
+        }
+
+        .status-badge.cancelled {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            width: 35px;
+            height: 35px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-edit {
+            background: var(--blue);
+            color: var(--white);
+        }
+
+        .btn-edit:hover {
+            background: #1976D2;
+        }
+
+        .btn-delete {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        .btn-delete:hover {
+            background: #D32F2F;
+        }
+
+        .btn-view {
+            background: var(--green);
+            color: var(--white);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--cream);
+        }
+
+        .modal-header h3 {
+            color: var(--primary-brown);
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--light-brown);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--primary-brown);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--cream);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--orange);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 2px solid var(--light-brown);
+            color: var(--light-brown);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-submit {
+            background: var(--orange);
+            border: none;
+            color: var(--white);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-filter input {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: 2px solid var(--cream);
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .search-filter select {
+            padding: 0.8rem 1rem;
+            border: 2px solid var(--cream);
+            border-radius: 10px;
+            background: var(--white);
+            cursor: pointer;
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="logo">
+                🚌 BuyTicket <span class="firma-badge">FIRM ADMIN</span>
+            </a>
+            <div class="user-info">
+                <span>Mehmet Demir</span>
+                <button style="background: transparent; border: 2px solid white; color: white; padding: 0.5rem 1rem; border-radius: 20px; cursor: pointer;">Logout</button>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="company-info">
+                <div class="company-logo">🚌</div>
+                <div class="company-name">Metro Turizm</div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" onclick="showSection('dashboard')">📊 Dashboard</a></li>
+                <li><a href="#" onclick="showSection('trips')">🚍 Trips</a></li>
+                <li><a href="#" onclick="showSection('tickets')">🎫 Tickets</a></li>
+                <li><a href="#" onclick="showSection('reports')">📈 Reports</a></li>
+                <li><a href="index.html">🏠 Home Page</a></li>
+                <li><a href="#">🚪 Logout</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🚍</div>
+                        <div class="stat-label">Active Trips</div>
+                        <div class="stat-value">45</div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-icon">🎫</div>
+                        <div class="stat-label">Today's Sales</div>
+                        <div class="stat-value">127</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-label">Daily Revenue</div>
+                        <div class="stat-value">42,500₺</div>
+                    </div>
+                    <div class="stat-card brown">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-label">Occupancy Rate</div>
+                        <div class="stat-value">78%</div>
+                    </div>
+                </div>
+
+                <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">Upcoming Trips</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service No</th>
+                                <th>Route</th>
+                                <th>Date & Time</th>
+                                <th>Fullness</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>MT-2025-001</strong></td>
+                                <td>Istanbul → Ankara</td>
+                                <td>08.10.2025 - 09:00</td>
+                                <td>28/40 (70%)</td>
+                                <td><span class="status-badge active">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>MT-2025-002</strong></td>
+                                <td>Ankara → Izmir</td>
+                                <td>08.10.2025 - 14:30</td>
+                                <td>35/40 (88%)</td>
+                                <td><span class="status-badge active">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>MT-2025-003</strong></td>
+                                <td>Istanbul → Antalya</td>
+                                <td>08.10.2025 - 20:00</td>
+                                <td>22/40 (55%)</td>
+                                <td><span class="status-badge active">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Trips Section -->
+            <div id="trips-section" style="display: none;">
+                <div class="page-header">
+                    <h2>Trip Management</h2>
+                    <button class="btn-add" onclick="openModal('trip')">+ Add New Trip</button>
+                </div>
+
+                <div class="search-filter">
+                    <input type="text" placeholder="🔍 Search trips...">
+                    <select>
+                        <option>All Status</option>
+                        <option>Active</option>
+                        <option>Completed</option>
+                        <option>Cancelled</option>
+                    </select>
+                    <select>
+                        <option>All Routes</option>
+                        <option>Istanbul → Ankara</option>
+                        <option>Ankara → Izmir</option>
+                        <option>Istanbul → Antalya</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Trip No</th>
+                                <th>Departure</th>
+                                <th>Arrival</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Price</th>
+                                <th>Occupancy</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>MT-2025-001</strong></td>
+                                <td>Istanbul</td>
+                                <td>Ankara</td>
+                                <td>15.10.2025</td>
+                                <td>09:00</td>
+                                <td>350TL</td>
+                                <td>28/40</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view" title="View">👁️</button>
+                                        <button class="btn-icon btn-edit" title="Edit">✏️</button>
+                                        <button class="btn-icon btn-delete" title="Delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>MT-2025-002</strong></td>
+                                <td>Istanbul</td>
+                                <td>Ankara</td>
+                                <td>15.10.2025</td>
+                                <td>13:30</td>
+                                <td>350TL</td>
+                                <td>35/40</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                        <button class="btn-icon btn-edit">✏️</button>
+                                        <button class="btn-icon btn-delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>MT-2025-003</strong></td>
+                                <td>Ankara</td>
+                                <td>Izmir</td>
+                                <td>16.10.2025</td>
+                                <td>10:00</td>
+                                <td>320TL</td>
+                                <td>22/40</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                        <button class="btn-icon btn-edit">✏️</button>
+                                        <button class="btn-icon btn-delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>MT-2025-004</strong></td>
+                                <td>Istanbul</td>
+                                <td>Antalya</td>
+                                <td>18.10.2025</td>
+                                <td>22:00</td>
+                                <td>450TL</td>
+                                <td>18/40</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                        <button class="btn-icon btn-edit">✏️</button>
+                                        <button class="btn-icon btn-delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>MT-2025-005</strong></td>
+                                <td>Istanbul</td>
+                                <td>Ankara</td>
+                                <td>05.10.2025</td>
+                                <td>09:00</td>
+                                <td>350TL</td>
+                                <td>40/40</td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                        <button class="btn-icon btn-delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tickets Section -->
+            <div id="tickets-section" style="display: none;">
+                <div class="page-header">
+                    <h2>Ticket Management</h2>
+                </div>
+
+                <div class="search-filter">
+                    <input type="text" placeholder="🔍 Search tickets or passengers...">
+                    <input type="date" placeholder="Date">
+                    <select>
+                        <option>All Status</option>
+                        <option>Active</option>
+                        <option>Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ticket No</th>
+                                <th>Passenger</th>
+                                <th>Trip</th>
+                                <th>Seat</th>
+                                <th>Date</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>BLT-001234</strong></td>
+                                <td>Ahmet Yılmaz</td>
+                                <td>Istanbul → Ankara</td>
+                                <td>7, 8</td>
+                                <td>15.10.2025 09:00</td>
+                                <td>630₺</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                        <button class="btn-icon btn-delete" title="Cancel">❌</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>BLT-001235</strong></td>
+                                <td>Ayşe Demir</td>
+                                <td>Istanbul → Ankara</td>
+                                <td>12</td>
+                                <td>15.10.2025 09:00</td>
+                                <td>350₺</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                        <button class="btn-icon btn-delete">❌</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>BLT-001236</strong></td>
+                                <td>Mehmet Kaya</td>
+                                <td>Ankara → Izmir</td>
+                                <td>5</td>
+                                <td>16.10.2025 10:00</td>
+                                <td>320₺</td>
+                                <td><span class="status-badge cancelled">İptal</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view">👁️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports-section" style="display: none;">
+                <div class="page-header">
+                    <h2>Reports</h2>
+                    <button class="btn-add" onclick="generateReport()">📊 Generate Report</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-label">Monthly Revenue</div>
+                        <div class="stat-value">42,500TL</div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-icon">🎫</div>
+                        <div class="stat-label">Tickets Sold</div>
+                        <div class="stat-value">1,247</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-icon">🚍</div>
+                        <div class="stat-label">Total Trips</div>
+                        <div class="stat-value">89</div>
+                    </div>
+                    <div class="stat-card brown">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-label">Avg Rating</div>
+                        <div class="stat-value">4.7</div>
+                    </div>
+                </div>
+
+                <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">Recent Reports</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Report Name</th>
+                                <th>Type</th>
+                                <th>Generated Date</th>
+                                <th>Period</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Monthly Sales Report</strong></td>
+                                <td>Sales</td>
+                                <td>01.10.2025</td>
+                                <td>September 2025</td>
+                                <td><span class="status-badge active">Ready</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view" title="Download">📥</button>
+                                        <button class="btn-icon btn-delete" title="Delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Trip Performance Report</strong></td>
+                                <td>Performance</td>
+                                <td>28.09.2025</td>
+                                <td>Q3 2025</td>
+                                <td><span class="status-badge active">Ready</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view" title="Download">📥</button>
+                                        <button class="btn-icon btn-delete" title="Delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Customer Analysis Report</strong></td>
+                                <td>Customer</td>
+                                <td>15.09.2025</td>
+                                <td>August 2025</td>
+                                <td><span class="status-badge completed">Completed</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view" title="Download">📥</button>
+                                        <button class="btn-icon btn-delete" title="Delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Revenue Report</strong></td>
+                                <td>Financial</td>
+                                <td>01.09.2025</td>
+                                <td>August 2025</td>
+                                <td><span class="status-badge active">Ready</span></td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon btn-view" title="Download">📥</button>
+                                        <button class="btn-icon btn-delete" title="Delete">🗑️</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: var(--primary-brown); margin-bottom: 1rem; margin-top: 2rem;">Quick Statistics</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+                    <div style="background: var(--cream); padding: 1.5rem; border-radius: 10px;">
+                        <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">Top Routes</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Istanbul → Ankara</span>
+                                <span style="font-weight: bold; color: var(--orange);">45 trips</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Ankara → Izmir</span>
+                                <span style="font-weight: bold; color: var(--orange);">32 trips</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Istanbul → Antalya</span>
+                                <span style="font-weight: bold; color: var(--orange);">28 trips</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: var(--cream); padding: 1.5rem; border-radius: 10px;">
+                        <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">Peak Hours</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Morning (08:00-12:00)</span>
+                                <span style="font-weight: bold; color: var(--green);">65%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Afternoon (12:00-18:00)</span>
+                                <span style="font-weight: bold; color: var(--green);">45%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Evening (18:00-24:00)</span>
+                                <span style="font-weight: bold; color: var(--green);">35%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Trip -->
+    <div id="trip-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Trip</h3>
+                <button class="btn-close" onclick="closeModal('trip')">×</button>
+            </div>
+            <form>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Departure City</label>
+                        <select required>
+                            <option value="">Select City</option>
+                            <option>Istanbul</option>
+                            <option>Ankara</option>
+                            <option>Izmir</option>
+                            <option>Antalya</option>
+                            <option>Bursa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Arrival City</label>
+                        <select required>
+                            <option value="">Select City</option>
+                            <option>Istanbul</option>
+                            <option>Ankara</option>
+                            <option>Izmir</option>
+                            <option>Antalya</option>
+                            <option>Bursa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Departure Time</label>
+                        <input type="time" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price (TL)</label>
+                        <input type="number" placeholder="350" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Seats</label>
+                        <input type="number" placeholder="40" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Duration (Hours)</label>
+                        <input type="text" placeholder="5:30" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Plate</label>
+                        <input type="text" placeholder="34 ABC 123" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Features</label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox"> WiFi
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox"> Catering
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox"> TV
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox"> Priz
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea rows="3" placeholder="Additional information about the trip..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeModal('trip')">Cancel</button>
+                    <button type="submit" class="btn-submit">Create Trip</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showSection(section) {
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('trips-section').style.display = 'none';
+            document.getElementById('tickets-section').style.display = 'none';
+            document.getElementById('reports-section').style.display = 'none';
+            
+            document.getElementById(section + '-section').style.display = 'block';
+            
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function openModal(type) {
+            document.getElementById(type + '-modal').classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + '-modal').classList.remove('active');
+        }
+
+        function generateReport() {
+            alert('Report generation started! You will be notified when it\'s ready.');
+            // Here you would typically make an API call to generate the report
+        }
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // Delete confirmations
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete this record?')) {
+                    alert('Record successfully deleted!');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sign up- BuyTicket</title>
+        <style>
+            /* ===== RESET & BASE STYLES ===== */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            /* ===== CSS VARIABLES ===== */
+            :root {
+                --primary-brown: #5D4037;
+                --light-brown: #8D6E63;
+                --orange: #FF6F00;
+                --light-orange: #FF8F00;
+                --yellow: #FFC107;
+                --light-yellow: #FFD54F;
+                --white: #FFFFFF;
+                --cream: #FFF8E1;
+                --text-dark: #3E2723;
+            }
+
+            /* ===== BODY & LAYOUT ===== */
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+            }
+
+            /* ===== REGISTER CONTAINER ===== */
+            .register-container {
+                background: var(--white);
+                border-radius: 20px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                overflow: hidden;
+                max-width: 900px;
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            /* ===== LEFT SIDE (BRANDING) ===== */
+            .register-left {
+                background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+                padding: 3rem;
+                color: var(--white);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+            }
+
+            .logo-large {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+
+            .register-left h2 {
+                font-size: 2rem;
+                margin-bottom: 1rem;
+            }
+
+            .register-left ul {
+                list-style: none;
+                text-align: left;
+                margin-top: 1rem;
+            }
+
+            .register-left li {
+                margin-bottom: 0.8rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .register-left li::before {
+                content: "✓";
+                font-weight: bold;
+                font-size: 1.2rem;
+            }
+
+            /* ===== RIGHT SIDE (FORM) ===== */
+            .register-right {
+                padding: 3rem;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            /* ===== REGISTER HEADER ===== */
+            .register-header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            .register-header h1 {
+                color: var(--primary-brown);
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .register-header p {
+                color: var(--light-brown);
+            }
+
+            /* ===== FORM LAYOUT ===== */
+            .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            /* ===== FORM STYLES ===== */
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group label {
+                display: block;
+                color: var(--primary-brown);
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .form-group input,
+            .form-group select {
+                width: 100%;
+                padding: 0.9rem;
+                border: 2px solid var(--cream);
+                border-radius: 10px;
+                font-size: 1rem;
+                transition: all 0.3s;
+                background: var(--cream);
+            }
+
+            .form-group input:focus,
+            .form-group select:focus {
+                outline: none;
+                border-color: var(--orange);
+                background: var(--white);
+            }
+
+            /* ===== TERMS & CONDITIONS ===== */
+            .terms {
+                display: flex;
+                align-items: start;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+                color: var(--light-brown);
+                font-size: 0.9rem;
+            }
+
+            .terms input {
+                margin-top: 0.2rem;
+                cursor: pointer;
+            }
+
+            .terms a {
+                color: var(--orange);
+                text-decoration: none;
+            }
+
+            .terms a:hover {
+                text-decoration: underline;
+            }
+
+            /* ===== BUTTONS ===== */
+            .btn-register {
+                width: 100%;
+                padding: 1rem;
+                background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+                color: var(--white);
+                border: none;
+                border-radius: 10px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .btn-register:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 111, 0, 0.4);
+            }
+
+            /* ===== DIVIDER ===== */
+            .divider {
+                text-align: center;
+                margin: 1.5rem 0;
+                color: var(--light-brown);
+                position: relative;
+            }
+
+            .divider::before,
+            .divider::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                width: 40%;
+                height: 1px;
+                background: var(--cream);
+            }
+
+            .divider::before {
+                left: 0;
+            }
+
+            .divider::after {
+                right: 0;
+            }
+
+            /* ===== LINKS ===== */
+            .login-link {
+                text-align: center;
+                color: var(--light-brown);
+            }
+
+            .login-link a {
+                color: var(--orange);
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+            .login-link a:hover {
+                text-decoration: underline;
+            }
+
+            /* ===== BACK HOME BUTTON ===== */
+            .back-home {
+                position: absolute;
+                top: 2rem;
+                left: 2rem;
+                color: var(--primary-brown);
+                text-decoration: none;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem 1rem;
+                background: var(--white);
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                transition: all 0.3s;
+            }
+
+            .back-home:hover {
+                transform: translateX(-5px);
+            }
+
+            /* ===== RESPONSIVE DESIGN ===== */
+            @media (max-width: 768px) {
+                .register-container {
+                    grid-template-columns: 1fr;
+                }
+
+                .register-left {
+                    display: none;
+                }
+
+                .form-row {
+                    grid-template-columns: 1fr;
+                }
+
+                .back-home {
+                    position: static;
+                    display: inline-flex;
+                    margin-bottom: 2rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <a href="index.html" class="back-home">← Return to Home Page</a>
+
+        <div class="register-container">
+            <!-- ===== LEFT SIDE (BRANDING) ===== -->
+            <div class="register-left">
+                <div class="logo-large">🎫</div>
+                <h2>Join BuyTicket</h2>
+                <p>Sign up for free and enjoy the benefits.</p>
+                <ul>
+                    <li>Buy tickets fast.</li>
+                    <li>View your past tickets.</li>
+                    <li>Special discount coupons.</li>
+                    <li>Flexible cancellation options.</li>
+                    <li>Download your tickets (PDF).</li>
+                </ul>
+            </div>
+
+            <!-- ===== RIGHT SIDE (FORM) ===== -->
+            <div class="register-right">
+                <div class="register-header">
+                    <h1>Sign up</h1>
+                    <p>Create new account.</p>
+                </div>
+
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <input type="text" id="name" name="name" placeholder="Your name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="surname">Surname</label>
+                            <input type="text" id="surname" name="surname" placeholder="Your surname" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email" placeholder="example@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Telephone</label>
+                        <input type="tel" id="phone" name="phone" placeholder="5XX XXX XX XX" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" placeholder="******" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password-confirm">Repeat password</label>
+                            <input type="password" id="password-confirm" name="password-confirm" placeholder="******" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="id">ID</label>
+                        <input type="text" id="id" name="id" placeholder="XXXXXXXXXXX" maxlength="11" required>
+                    </div>
+
+                    <label class="terms">
+                        <input type="checkbox" name="terms" required>
+                        <span>I read and accept <a href="#">Terms of use</a> and <a href="#">Privacy Policy</a> </span>
+                    </label>
+
+                    <button type="submit" class="btn-register">Sign up</button>
+
+                    <div class="divider">or</div>
+
+                    <div class="login-link">
+                        Already have an account? <a href="login.html">Log in</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // ===== REGISTER FORM HANDLING =====
+            function handleRegister(event) {
+                event.preventDefault();
+
+                const password = document.getElementById('password').value;
+                const passwordConfirm = document.getElementById('password-confirm').value;
+
+                // Password validation
+                if (password !== passwordConfirm) {
+                    alert('Passwords do not match! Please check.');
+                    return;
+                }
+
+                // ID validation
+                const id = document.getElementById('id').value;
+                if (id.length !== 11) {
+                    alert('ID no must be 11 digits!');
+                    return;
+                }
+
+                // Success message
+                alert('Register succeed! You are redirected to the login page...');
+                // In real application: window.location.href='login.html';
+            }
+        </script>
+    </body>
+</html>

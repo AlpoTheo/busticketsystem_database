@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Log in - BuyTicket</title>
+        <style>
+            /* ===== RESET & BASE STYLES ===== */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            /* ===== CSS VARIABLES ===== */
+            :root {
+                --primary-brown: #5D4037;
+                --light-brown: #8D6E63;
+                --orange: #FF6F00;
+                --light-orange: #FF8F00;
+                --yellow: #FFC107;
+                --light-yellow: #FFD54F;
+                --white: #FFFFFF;
+                --cream: #FFF8E1;
+                --text-dark: #3E2723;
+            }
+
+            /* ===== BODY & LAYOUT ===== */
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+            }
+
+            /* ===== LOGIN CONTAINER ===== */
+            .login-container {
+                background: var(--white);
+                border-radius: 20px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                overflow: hidden;
+                max-width: 900px;
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            /* ===== LEFT SIDE (BRANDING) ===== */
+            .login-left {
+                background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+                padding: 3rem;
+                color: var(--white);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+            }
+
+            .logo-large {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+            }
+
+            .login-left h2 {
+                font-size: 2rem;
+                margin-bottom: 1rem;
+            }
+
+            .login-left p {
+                opacity: 0.9;
+                line-height: 1.6;
+            }
+
+            /* ===== RIGHT SIDE (FORM) ===== */
+            .login-right {
+                padding: 3rem;
+            }
+
+            /* ===== LOGIN HEADER ===== */
+            .login-header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            .login-header h1 {
+                color: var(--primary-brown);
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .login-header p {
+                color: var(--light-brown);
+            }
+
+            /* ===== FORM STYLES ===== */
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group label {
+                display: block;
+                color: var(--primary-brown);
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+            }
+
+            .form-group input {
+                width: 100%;
+                padding: 0.9rem;
+                border: 2px solid var(--cream);
+                border-radius: 10px;
+                font-size: 1rem;
+                transition: all 0.3s;
+                background: var(--cream);
+            }
+
+            .form-group input:focus {
+                outline: none;
+                border-color: var(--orange);
+                background: var(--white);
+            }
+
+            /* ===== FORM OPTIONS ===== */
+            .form-options {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+            }
+
+            .remember-me {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                color: var(--light-brown);
+            }
+
+            .remember-me input {
+                cursor: pointer;
+            }
+
+            .forgot-password {
+                color: var(--orange);
+                text-decoration: none;
+                font-size: 0.9rem;
+            }
+
+            .forgot-password:hover {
+                text-decoration: underline;
+            }
+
+            /* ===== BUTTONS ===== */
+            .btn-login {
+                width: 100%;
+                padding: 1rem;
+                background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+                color: var(--white);
+                border: none;
+                border-radius: 10px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .btn-login:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 111, 0, 0.4);
+            }
+
+            /* ===== DIVIDER ===== */
+            .divider {
+                text-align: center;
+                margin: 1.5rem 0;
+                color: var(--light-brown);
+                position: relative;
+            }
+
+            .divider::before,
+            .divider::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                width: 40%;
+                height: 1px;
+                background: var(--cream);
+            }
+
+            .divider::before {
+                left: 0;
+            }
+
+            .divider::after {
+                right: 0;
+            }
+
+            /* ===== LINKS ===== */
+            .signup-link {
+                text-align: center;
+                color: var(--light-brown);
+            }
+
+            .signup-link a {
+                color: var(--orange);
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+            .signup-link a:hover {
+                text-decoration: underline;
+            }
+
+            /* ===== BACK HOME BUTTON ===== */
+            .back-home {
+                position: absolute;
+                top: 2rem;
+                left: 2rem;
+                color: var(--primary-brown);
+                text-decoration: none;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem 1rem;
+                background: var(--white);
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                transition: all 0.3s;
+            }
+
+            .back-home:hover {
+                transform: translateX(-5px);
+            }
+
+            /* ===== RESPONSIVE DESIGN ===== */
+            @media (max-width: 768px) {
+                .login-container {
+                    grid-template-columns: 1fr;
+                }
+
+                .login-left {
+                    display: none;
+                }
+
+                .back-home {
+                    position: static;
+                    display: inline-flex;
+                    margin-bottom: 2rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <a href="index.html" class="back-home">← Return to Home Page</a>
+
+        <div class="login-container">
+            <!-- ===== LEFT SIDE (BRANDING) ===== -->
+            <div class="login-left">
+                <div class="logo-large">🚌</div>
+                <h2>Welcome BuyTicket!</h2>
+                <p>Log in to Turkey's most reliable bus ticket platform and plan your comfortable journey.</p>
+            </div>
+
+            <!-- ===== RIGHT SIDE (FORM) ===== -->
+            <div class="login-right">
+                <div class="login-header">
+                    <h1>Log in</h1>
+                    <p>Access your account</p>
+                </div>
+
+                <form>
+                    <div class="form-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email" placeholder="example@email.com" required> 
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="*******" required>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-me">
+                            <input type="checkbox" name="remember">
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-password">Forgot your password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-login">Log in</button>
+
+                    <div class="divider">or</div>
+
+                    <div class="signup-link">
+                        Do not have an account? <a href="register.html">Sign up</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </body>
+</html>

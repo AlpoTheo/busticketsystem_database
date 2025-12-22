@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Seat Selection - BuyTicket</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            :root {
+                --primary-brown: #5D4037;
+                --light-brown: #8D6E63;
+                --orange: #FF6F00;
+                --light-orange: #FF8F00;
+                --yellow: #FFC107;
+                --light-yellow: #FFD54F;
+                --white: #FFFFFF;
+                --cream: #FFF8E1;
+                --text-dark: #3E2723;
+                --green: #4CAF50;
+                --red: #F44336;
+            }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+                min-height: 100vh;
+                color: var(--text-dark);
+            }
+
+            /*header*/
+            header {
+                background:linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+
+            nav {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 1rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .logo {
+                font-size: 1.8rem;
+                font-weight: bold;
+                color: var(--white);
+                text-decoration: none;
+            }
+
+            .user-info {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                color: var(--white);
+            }
+
+            .credit-badge {
+                background: var(--orange);
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-weight: 600;
+            }
+
+            /*container*/
+            .container {
+                max-width: 1200px;
+                margin: 2rem auto;
+                padding: 0 2rem;
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 2rem;
+            }
+
+            /*service info*/
+            .service-info {
+                background: var(--white);
+                padding: 1.5rem;
+                border-radius: 15px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                margin-bottom: 1.5rem;
+            }
+
+            .service-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid var(--cream);
+            }
+
+            .service-time {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
+
+            .departure-time, .arrival-time {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: var(--primary-brown);
+                padding: 0.5rem 1rem;
+                background: var(--cream);
+                border-radius: 8px;
+            }
+
+            .service-details-small {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 2rem;
+            }
+
+            .route {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .route-time {
+                font-size: 1.4rem;
+                font-weight: bold;
+                color: var(--primary-brown);
+                margin-bottom: 0.2rem;
+            }
+
+            .route-arrow {
+                color: var(--orange);
+                font-size: 1.5rem;
+            }
+
+            /*seat selection */
+            .seat-selection {
+                background: var(--white);
+                padding: 2rem;
+                border-radius: 15px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            }
+
+            .seat-selection h3 {
+                color: var(--primary-brown);
+                margin-bottom: 1.5rem;
+                text-align: center;
+            }
+
+            .bus-layout {
+                background: var(--cream);
+                padding: 2rem;
+                border-radius: 15px;
+                margin-bottom: 2rem;
+            }
+
+            .driver-section {
+                text-align: right;
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px dashed var(--light-brown);
+            }
+
+            .driver-icon {
+                display: inline-block;
+                font-size: 2rem;
+                background: var(--primary-brown);
+                color: var(--white);
+                padding: 0.5rem 1rem;
+                border-radius: 10px;
+            }
+
+            .seats-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+
+            .seat {
+                aspect-ratio: 1;
+                border: 2px solid var(--light-brown);
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                background: var(--white);
+                position: relative;
+            }
+
+            .seat:hover:not(.occupied):not(.selected) {
+                transform: scale(1.05);
+                border-color: var(--orange);
+            }
+
+            .seat.occupied {
+                background: var(--red);
+                color: var(--white);
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+
+            .seat.selected {
+                background: var(--green);
+                color: var(--white);
+                border-color: var(--green);
+                transform: scale(1.05);
+            }
+
+            .seat.aisle {
+                background: transparent;
+                border: none;
+                cursor: default;
+            }
+
+            /*legend*/
+            .seat-legend {
+                display: flex;
+                justify-content: center;
+                gap: 2rem;
+                margin-top: 2rem;
+                flex-wrap: wrap;
+            }
+
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .legend-box {
+                width: 30px;
+                height: 30px;
+                border-radius: 5px;
+                border: 2px solid var(--light-brown);
+            }
+
+            .legend-box.available {
+                background: var(--white);
+            }
+
+            .legend-box.occupied {
+                background: var(--red);
+                border-color: var(--red);
+            }
+
+            .legend-box.selected {
+                background: var(--green);
+                border-color: var(--green);
+            }
+
+            /*summary panel*/
+            .summary-panel {
+                background: var(--white);
+                padding: 2rem;
+                border-radius: 15px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                height: fit-content;
+                position: sticky;
+                top: 2rem;
+            }
+
+            .summary-panel h3 {
+                color: var(--primary-brown);
+                margin-bottom: 1.5rem;
+            }
+
+            .selected-seats {
+                margin-bottom: 1.5rem;
+                padding-bottom: 1.5rem;
+                border-bottom: 2px solid var(--cream);
+            }
+
+            .selected-seat-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem;
+                margin-bottom: 0.5rem;
+                background: var(--cream);
+                border-radius: 8px;
+            }
+
+            .remove-seat {
+                background: var(--red);
+                color: var(--white);
+                border: none;
+                width: 25px;
+                height: 25px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 1rem;
+            }
+
+            .price-breakdown {
+                margin-bottom: 1.5rem;
+            }
+
+            .price-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.8rem;
+                color: var(--light-brown);
+            }
+
+            .price-row.total {
+                font-size: 1.3rem;
+                font-weight: bold;
+                color: var(--primary-brown);
+                padding-top: 1rem;
+                border-top: 2px solid var(--cream);
+            }
+
+            .coupon-section {
+                margin-bottom: 1.5rem;
+            }
+
+            .coupon-input-group {
+                display: flex;
+                gap: 0.5rem;
+            }
+
+            .coupon-input-group input {
+                flex: 1;
+                padding: 0.7rem;
+                border: 2px solid var(--cream);
+                border-radius: 8px;
+                font-size: 1rem;
+                transition: border-color 0.3s;
+            }
+
+            .coupon-input-group input:focus {
+                outline: none;
+                border-color: var(--orange);
+            }
+
+            .coupon-input-group input:disabled {
+                background: var(--cream);
+                color: var(--light-brown);
+                cursor: not-allowed;
+            }
+
+            .btn-apply-coupon:disabled {
+                background: var(--light-brown);
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .btn-apply-coupon {
+                background: var(--light-brown);
+                color: var(--white);
+                border: none;
+                padding: 0.7rem 1rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            .btn-apply-coupon:hover {
+                background: var(--primary-brown);
+            }
+
+            .discount-applied {
+                padding: 0.5rem 1rem;
+                border-radius: 5px;
+                margin-top: 0.5rem;
+                font-size: 0.9rem;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 0.3rem;
+            }
+
+            .discount-applied.success {
+                background: var(--green);
+                color: var(--white);
+            }
+
+            .discount-applied.error {
+                background: var(--red);
+                color: var(--white);
+            }
+
+
+            .btn-purchase {
+                width: 100%;
+                padding: 1rem;
+                background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100% );
+                color: var(--white);
+                border: none;
+                border-radius: 10px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .btn-purchase:hover:not(:disabled) {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .info-message {
+                background: var(--cream);
+                padding: 1rem;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                font-size: 0.9rem;
+                color: var(--light-brown);
+            }
+
+            @media (max-width: 968px) {
+                .container {
+                    grid-template-columns: 1fr;
+                }
+
+                .summary-panel {
+                    position: static;
+                }
+            }
+        </style>
+
+    </head>
+    <body>
+        <header>
+            <nav>
+                <a href="index.html" class="logo">🚌 BuyTicket</a>
+                <div class="user-info">
+                    <span>Ahmet Yılmaz</span>
+                    <div class="credit-badge">💳 1,500 TL</div>
+                </div>
+            </nav>
+        </header>
+
+        <div class="container">
+            <div>
+                <div class="service-info">
+                    <div class="service-header">
+                        <h3>Metro Tourism</h3>
+                        <div class="service-time">
+                            <div class="departure-time">09:00</div>
+                            <div class="arrival-time">14:30</div>
+                        </div>
+                    </div>
+                    <div class="service-details-small">
+                        <div class="route">
+                            <div>
+                                <div>Istanbul</div>
+                            </div>
+                            <div class="route-arrow">→</div>
+                            <div>
+                                <div>Ankara</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; color: var(--orange);">350 TL</div>
+                            <div style="font-size: 0.9rem; color: var(--light-brown);">15 October 2025</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="seat-selection">
+                    <h3>Seat Selection</h3>
+
+                    <div class="driver-section">
+                        <div class="driver-icon">🚗</div>
+                    </div>
+
+                    <div class="seats-grid">
+                        <!--Row 1-->
+                        <div class="seat" data-seat="1">1</div>
+                        <div class="seat" data-seat="2">2</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat occupied" data-seat="3">3</div>
+
+                        <!-- Row 2 -->
+                        <div class="seat" data-seat="4">4</div>
+                        <div class="seat occupied" data-seat="5">5</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat" data-seat="6">6</div>
+
+                        <!-- Row 3 -->
+                        <div class="seat" data-seat="7">7</div>
+                        <div class="seat" data-seat="8">8</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat occupied" data-seat="9">9</div>
+
+                        <!-- Row 4 -->
+                        <div class="seat" data-seat="10">10</div>
+                        <div class="seat" data-seat="11">11</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat" data-seat="12">12</div>
+
+                        <!-- Row 5 -->
+                        <div class="seat occupied" data-seat="13">13</div>
+                        <div class="seat" data-seat="14">14</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat" data-seat="15">15</div>
+
+                        <!-- Row 6 -->
+                        <div class="seat" data-seat="16">16</div>
+                        <div class="seat" data-seat="17">17</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat occupied" data-seat="18">18</div>
+
+                        <!-- Row 7 -->
+                        <div class="seat" data-seat="19">19</div>
+                        <div class="seat" data-seat="20">20</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat" data-seat="21">21</div>
+
+                        <!-- Row 8 -->
+                        <div class="seat" data-seat="22">22</div>
+                        <div class="seat" data-seat="23">23</div>
+                        <div class="seat aisle"></div>
+                        <div class="seat" data-seat="24">24</div>
+                    </div>
+                </div>
+
+                <div class="seat-legend">
+                    <div class="legend-item">
+                        <div class="legend-box available"></div>
+                        <span>Empty</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box occupied"></div>
+                        <span>Full</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box selected"></div>
+                        <span>Selected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-panel">
+        <h3>Summary</h3>
+
+        <div class="info-message">
+            You can select up to 5 seats.
+        </div>
+
+        <div class="selected-seats">
+            <h4 style="margin-bottom: 1rem; color: var(--light-brown);">Selected Seats</h4>
+            <div id="selected-seats-list">
+                <p style="color: var(--light-brown); font-size: 0.9rem;">No seats selected yet</p>
+            </div>
+        </div>
+
+        <div class="price-breakdown">
+            <div class="price-now">
+                <span>Ticket Price:</span>
+                <span id="base-price">350 TL</span>
+            </div>
+            <div class="price-row">
+                <span>Number of seats:</span>
+                <span id="seat-count">0</span>
+            </div>
+            <div class="price-row">
+                <span>Subtotal:</span>
+                <span id="subtotal">0 TL</span>
+            </div>
+            <div class="price-row" id="discount-row" style="display: none; color: var(--green);">
+                <span>Discount:</span>
+                <span id="discount-amount">0 TL</span>
+            </div>
+            <div class="price-row total">
+                <span>Total:</span>
+                <span id="total-price">0 TL</span>
+            </div>
+        </div>
+
+        <div class="coupon-section">
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--primary-brown); font-weight: 600;">Discount Coupon:</label>
+            <div class="coupon-input-group">
+                <input type="text" id="coupon-input" placeholder="Enter your coupon code">
+                <button type="button" class="btn-apply-coupon">Apply</button>
+            </div>
+            <div class="discount-applied" id="discount-message" style="display: none;">
+                Coupon applied successfully!
+            </div>
+        </div>
+
+        <button class="btn-purchase" id="purchase-btn" disabled>Make payment</button>
+
+        <div class="info-message" style="margin-top: 1rem;">
+            Your current credit: 1500 TL
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== CONFIGURATION =====
+    const CONFIG = {
+        seatPrice: 350,
+        maxSeats: 5,
+        userCredit: 1500,
+        coupons: {
+            'DISCOUNT10': 10,
+            'DISCOUNT20': 20,
+            'SUMMER25': 15
+        }
+    };
+
+    // ===== STATE MANAGEMENT =====
+    let selectedSeats = [];
+    let discountRate = 0;
+
+    // ===== SERVICE DATA MANAGEMENT =====
+    class ServiceManager {
+        static loadServiceData() {
+            const serviceData = localStorage.getItem('selectedService');
+            if (!serviceData) return;
+
+            try {
+                const data = JSON.parse(serviceData);
+                this.updateServiceDetails(data);
+            } catch (error) {
+                console.error('Error parsing service data:', error);
+            }
+        }
+
+        static updateServiceDetails(data) {
+            this.updateRouteTimes(data);
+            this.updateLocations(data);
+            this.updatePrice(data);
+            this.updateDate(data);
+        }
+
+        static updateRouteTimes(data) {
+            const departureTime = document.querySelector('.departure-time');
+            const arrivalTime = document.querySelector('.arrival-time');
+            
+            if (departureTime) {
+                departureTime.textContent = data.departureTime;
+            }
+            if (arrivalTime) {
+                arrivalTime.textContent = data.arrivalTime;
+            }
+        }
+
+        static updateLocations(data) {
+            const locations = document.querySelectorAll('.route div:last-child');
+            if (locations.length >= 2) {
+                locations[0].textContent = data.departureCity;
+                locations[1].textContent = data.arrivalCity;
+            }
+        }
+
+        static updatePrice(data) {
+            const priceElement = document.querySelector('.price');
+            if (priceElement) {
+                priceElement.textContent = data.price;
+            }
+        }
+
+        static updateDate(data) {
+            if (!data.date) return;
+            
+            const dateElement = document.querySelector('.date-info');
+            if (dateElement) {
+                const formattedDate = new Date(data.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                dateElement.textContent = formattedDate;
+            }
+        }
+    }
+
+    // ===== SEAT SELECTION MANAGEMENT =====
+    class SeatManager {
+        static initializeSeatSelection() {
+            const availableSeats = document.querySelectorAll('.seat:not(.occupied):not(.aisle)');
+            availableSeats.forEach(seat => {
+                seat.addEventListener('click', this.handleSeatClick.bind(this));
+            });
+        }
+
+        static handleSeatClick(event) {
+            const seatElement = event.target;
+            const seatNum = seatElement.dataset.seat;
+
+            console.log('Seat clicked:', seatNum, 'Currently selected:', selectedSeats.length);
+
+            if (seatElement.classList.contains('selected')) {
+                this.deselectSeat(seatElement, seatNum);
+            } else {
+                this.selectSeat(seatElement, seatNum);
+            }
+
+            console.log('After seat selection - selectedSeats:', selectedSeats.length);
+            SummaryManager.updateSummary();
+        }
+
+        static selectSeat(seatElement, seatNum) {
+            if (selectedSeats.length >= CONFIG.maxSeats) {
+                alert(`You can select up to ${CONFIG.maxSeats} seats!`);
+                return;
+            }
+
+            console.log('Selecting seat:', seatNum);
+            seatElement.classList.add('selected');
+            selectedSeats.push(seatNum);
+            console.log('Seat selected. Total selected:', selectedSeats.length);
+        }
+
+        static deselectSeat(seatElement, seatNum) {
+            console.log('Deselecting seat:', seatNum);
+            seatElement.classList.remove('selected');
+            selectedSeats = selectedSeats.filter(s => s !== seatNum);
+            console.log('Seat deselected. Total selected:', selectedSeats.length);
+        }
+    }
+
+    // ===== SUMMARY MANAGEMENT =====
+    class SummaryManager {
+        static updateSummary() {
+            this.updateSeatsList();
+            this.updatePurchaseButton();
+            this.updatePricing();
+            this.updateCouponSection();
+        }
+
+        static updateCouponSection() {
+            const couponInput = document.getElementById('coupon-input');
+            const couponButton = document.querySelector('.btn-apply-coupon');
+            
+            console.log('Updating coupon section - selectedSeats:', selectedSeats.length, 'discountRate:', discountRate);
+            
+            if (selectedSeats.length === 0) {
+                console.log('No seats selected - disabling coupon section');
+                if (couponInput) {
+                    couponInput.disabled = true;
+                    couponInput.placeholder = 'Select seats first to apply coupon';
+                }
+                if (couponButton) {
+                    couponButton.disabled = true;
+                }
+            } else {
+                // Only enable if no coupon has been applied yet
+                if (discountRate === 0) {
+                    console.log('Seats selected and no coupon applied - enabling coupon section');
+                    if (couponInput) {
+                        couponInput.disabled = false;
+                        couponInput.placeholder = 'Enter your coupon code';
+                    }
+                    if (couponButton) {
+                        couponButton.disabled = false;
+                    }
+                } else {
+                    console.log('Coupon already applied - keeping section disabled');
+                }
+            }
+        }
+
+        static updateSeatsList() {
+            const seatsList = document.getElementById('selected-seats-list');
+            const purchaseBtn = document.getElementById('purchase-btn');
+
+            if (selectedSeats.length === 0) {
+                seatsList.innerHTML = '<p style="color: var(--light-brown); font-size: 0.9rem;">No seats selected yet</p>';
+                purchaseBtn.disabled = true;
+            } else {
+                seatsList.innerHTML = this.generateSeatsHTML();
+                purchaseBtn.disabled = false;
+            }
+        }
+
+        static generateSeatsHTML() {
+            return selectedSeats.map(seat => `
+                <div class="selected-seat-item">
+                    <span>Seat ${seat}</span>
+                    <span>${CONFIG.seatPrice} TL</span>
+                </div>
+            `).join('');
+        }
+
+        static updatePurchaseButton() {
+            const purchaseBtn = document.getElementById('purchase-btn');
+            purchaseBtn.disabled = selectedSeats.length === 0;
+        }
+
+        static updatePricing() {
+            const seatCount = document.getElementById('seat-count');
+            const subtotal = document.getElementById('subtotal');
+            const totalPrice = document.getElementById('total-price');
+
+            const subtotalAmount = selectedSeats.length * CONFIG.seatPrice;
+            const discountAmount = subtotalAmount * (discountRate / 100);
+            const total = subtotalAmount - discountAmount;
+
+            seatCount.textContent = selectedSeats.length;
+            subtotal.textContent = subtotalAmount + ' TL';
+            totalPrice.textContent = total + ' TL';
+
+            this.updateDiscountDisplay(discountAmount);
+        }
+
+        static updateDiscountDisplay(discountAmount) {
+            const discountRow = document.getElementById('discount-row');
+            const discountAmountElement = document.getElementById('discount-amount');
+
+            if (discountRate > 0) {
+                discountRow.style.display = 'flex';
+                discountAmountElement.textContent = '-' + discountAmount + ' TL';
+            }
+        }
+    }
+
+    // ===== COUPON MANAGEMENT =====
+    class CouponManager {
+        static applyCoupon() {
+            console.log('applyCoupon called');
+            const couponInput = document.getElementById('coupon-input');
+            const couponCode = couponInput.value.trim().toUpperCase();
+            
+            console.log('Coupon code entered:', couponCode);
+            console.log('Available coupons:', CONFIG.coupons);
+
+            // Check if seats are selected first
+            if (selectedSeats.length === 0) {
+                this.showMessage('Please select at least one seat before applying a coupon.', 'error');
+                return;
+            }
+
+            // Check if a coupon is already applied
+            if (discountRate > 0) {
+                console.log('Coupon already applied');
+                this.showMessage('Only one coupon can be used per booking.', 'error');
+                return;
+            }
+
+            if (CONFIG.coupons[couponCode]) {
+                console.log('Valid coupon found');
+                this.applyValidCoupon(couponCode, couponInput);
+            } else {
+                console.log('Invalid coupon');
+                this.handleInvalidCoupon();
+            }
+        }
+
+        static applyValidCoupon(couponCode, couponInput) {
+            discountRate = CONFIG.coupons[couponCode];
+            this.showMessage(`Coupon "${couponCode}" applied successfully! ${discountRate}% discount applied.`, 'success');
+            couponInput.disabled = true;
+            document.querySelector('.btn-apply-coupon').disabled = true;
+            SummaryManager.updateSummary();
+            
+            // Clear any existing error messages
+            setTimeout(() => {
+                const messageElement = document.getElementById('discount-message');
+                if (messageElement && messageElement.classList.contains('error')) {
+                    messageElement.style.display = 'none';
+                }
+            }, 100);
+        }
+
+        static handleInvalidCoupon() {
+            this.showMessage('Invalid coupon code. Please check and try again.', 'error');
+        }
+
+        static showMessage(message, type) {
+            const messageElement = document.getElementById('discount-message');
+            messageElement.textContent = message;
+            messageElement.className = `discount-applied ${type}`;
+            messageElement.style.display = 'flex';
+            
+            // Auto-hide error messages after 3 seconds
+            if (type === 'error') {
+                setTimeout(() => {
+                    messageElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+    }
+
+    // ===== PURCHASE MANAGEMENT =====
+    class PurchaseManager {
+        static handlePurchase() {
+            if (selectedSeats.length === 0) return;
+
+            const total = this.calculateTotal();
+            
+            if (!this.validateCredit(total)) return;
+            if (!this.confirmPurchase(total)) return;
+
+            this.completePurchase();
+        }
+
+        static calculateTotal() {
+            return (selectedSeats.length * CONFIG.seatPrice) * (1 - discountRate / 100);
+        }
+
+        static validateCredit(total) {
+            if (total > CONFIG.userCredit) {
+                alert('Insufficient balance. Please top up your credit.');
+                return false;
+            }
+            return true;
+        }
+
+        static confirmPurchase(total) {
+            return confirm(`${selectedSeats.length} seats for ${total} TL payment. Do you want to confirm?`);
+        }
+
+        static completePurchase() {
+            alert('Your ticket has been successfully purchased. You will be redirected to the My Tickets page.');
+            window.location.href = 'MyTickets.html';
+        }
+    }
+
+    // ===== EVENT LISTENERS =====
+    class EventManager {
+        static initializeEventListeners() {
+            this.initializePurchaseButton();
+            this.initializeCouponButton();
+        }
+
+        static initializePurchaseButton() {
+            document.getElementById('purchase-btn').addEventListener('click', PurchaseManager.handlePurchase);
+        }
+
+        static initializeCouponButton() {
+            const couponButton = document.querySelector('.btn-apply-coupon');
+            const couponInput = document.getElementById('coupon-input');
+            
+            console.log('Coupon button found:', couponButton);
+            console.log('Coupon input found:', couponInput);
+            
+            if (couponButton) {
+                couponButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Coupon button clicked');
+                    CouponManager.applyCoupon();
+                });
+            }
+            
+            if (couponInput) {
+                couponInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        console.log('Enter key pressed');
+                        CouponManager.applyCoupon();
+                    }
+                });
+            }
+        }
+    }
+
+    // ===== INITIALIZATION =====
+    document.addEventListener('DOMContentLoaded', function() {
+        ServiceManager.loadServiceData();
+        SeatManager.initializeSeatSelection();
+        EventManager.initializeEventListeners();
+        SummaryManager.updateSummary();
+        
+        // Fallback coupon functionality
+        console.log('Initializing fallback coupon functionality');
+        const couponButton = document.querySelector('.btn-apply-coupon');
+        if (couponButton) {
+            couponButton.onclick = function(e) {
+                e.preventDefault();
+                console.log('Fallback coupon button clicked');
+                CouponManager.applyCoupon();
+            };
+        }
+    });
+</script>
+</body>
+</html>

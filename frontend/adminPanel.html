@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin Panel - BuyTicket</title>
+        <style>
+            /* ===== RESET & BASE STYLES ===== */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            /* ===== CSS VARIABLES ===== */
+            :root {
+                --primary-brown: #5D4037;
+                --light-brown: #8D6E63;
+                --orange: #FF6F00;
+                --light-orange: #FF8F00;
+                --yellow: #FFC107;
+                --light-yellow: #FFD54F;
+                --white: #FFFFFF;
+                --cream: #FFF8E1;
+                --text-dark: #3E2723;
+                --green: #4CAF50;
+                --red: #F44336;
+                --blue: #2196F3;
+            }
+
+            /* ===== BODY & LAYOUT ===== */
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+                min-height: 100vh;
+                color: var(--text-dark);
+            }
+
+            /* ===== HEADER & NAVIGATION ===== */
+            header {
+                background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+
+            nav {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 1rem 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .logo {
+                font-size: 1.8rem;
+                font-weight: bold;
+                color: var(--white);
+                text-decoration: none;
+            }
+
+            .admin-badge {
+                background: var(--red);
+                color: var(--white);
+                padding: 0.3rem 0.8rem;
+                border-radius: 15px;
+                font-size: 0.8rem;
+                margin-left: 0.5rem;
+            }
+
+            /* ===== MAIN LAYOUT ===== */
+            .container {
+                max-width: 1400px;
+                margin: 2rem auto;
+                padding: 0 2rem;
+                display: grid;
+                grid-template-columns: 250px 1fr;
+                gap: 2rem;
+            }
+
+            /* ===== SIDEBAR ===== */
+            .sidebar {
+                background: var(--white);
+                padding: 1.5rem;
+                border-radius: 15px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                height: fit-content;
+                position: sticky;
+                top: 2rem;
+            }
+
+            .sidebar-title {
+                color: var(--primary-brown);
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+                padding-bottom: 0.8rem;
+                border-bottom: 2px solid var(--cream);
+            }
+
+            .sidebar-menu {
+                list-style: none;
+            }
+
+            .sidebar-menu li {
+                margin-bottom: 0.5rem;
+            }
+
+            .sidebar-menu a {
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                padding: 0.8rem;
+                color: var(--text-dark);
+                text-decoration: none;
+                border-radius: 8px;
+                transition: all 0.3s;
+            }
+
+            .sidebar-menu a:hover,
+            .sidebar-menu a.active {
+                background: var(--cream);
+                color: var(--orange);
+            }
+
+            /* ===== MAIN CONTENT ===== */
+            .main-content {
+                background: var(--white);
+                padding: 2rem;
+                border-radius: 15px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            }
+
+            .page-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid var(--cream);
+            }
+
+            .page-header h2 {
+                color: var(--primary-brown);
+                font-size: 2rem;
+            }
+
+            /* ===== BUTTONS ===== */
+            .btn-add {
+                background: var(--orange);
+                color: var(--white);
+                border: none;
+                padding: 0.8rem 1.5rem;
+                border-radius: 10px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.3s;
+            }
+
+            .btn-add:hover {
+                background: var(--light-orange);
+                transform: translateY(-2px);
+            }
+
+            /* ===== STATISTICS CARDS ===== */
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .stat-card {
+                background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+                padding: 1.5rem;
+                border-radius: 12px;
+                color: var(--white);
+                box-shadow: 0 4px 12px rgba(255, 111, 0, 0.2);
+                text-align: center;
+            }
+
+            .stat-card.blue {
+                background: linear-gradient(135deg, var(--blue) 0%, #42A5F5 100%);
+            }
+
+            .stat-card.green {
+                background: linear-gradient(135deg, var(--green) 0%, #66BB6A 100%);
+            }
+
+            .stat-card.brown {
+                background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
+            }
+
+            .stat-icon {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .stat-label {
+                font-size: 0.9rem;
+                opacity: 0.9;
+                margin-bottom: 0.5rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+                font-weight: bold;
+            }
+
+            /* ===== TABLES ===== */
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            thead {
+                background: var(--cream);
+            }
+
+            th {
+                text-align: left;
+                padding: 1rem;
+                color: var(--primary-brown);
+                font-weight: 600;
+            }
+
+            td {
+                padding: 1rem;
+                border-bottom: 1px solid var(--cream);
+            }
+
+            tr:hover {
+                background: var(--cream);
+            }
+
+            /* ===== STATUS BADGES ===== */
+            .status-badge {
+                padding: 0.4rem 0.8rem;
+                border-radius: 15px;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+
+            .status-badge.active {
+                background: var(--green);
+                color: var(--white);
+            }
+
+            .status-badge.inactive {
+                background: var(--red);
+                color: var(--white);
+            }
+
+            /* ===== ACTION BUTTONS ===== */
+            .action-buttons {
+                display: flex;
+                gap: 0.5rem;
+            }
+
+            .btn-icon {
+                width: 35px;
+                height: 35px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-edit {
+                background: var(--blue);
+                color: var(--white);
+            }
+
+            .btn-edit:hover {
+                background: #1976D2;
+            }
+
+            .btn-delete {
+                background: var(--red);
+                color: var(--white);
+            }
+
+            .btn-delete:hover {
+                background: #D32F2F;
+            }
+
+            /* ===== MODALS ===== */
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 1000;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .modal.active {
+                display: flex;
+            }
+
+            .modal-content {
+                background: var(--white);
+                padding: 2rem;
+                border-radius: 15px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid var(--cream);
+            }
+
+            .modal-header h3 {
+                color: var(--primary-brown);
+            }
+
+            .btn-close {
+                background: transparent;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: var(--light-brown);
+            }
+
+            /* ===== FORMS ===== */
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group label {
+                display: block;
+                color: var(--primary-brown);
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100%;
+                padding: 0.8rem;
+                border: 2px solid var(--cream);
+                border-radius: 8px;
+                font-size: 1rem;
+            }
+
+            .form-group input:focus,
+            .form-group select:focus,
+            .form-group textarea:focus {
+                outline: none;
+                border-color: var(--orange);
+            }
+
+            .form-actions {
+                display: flex;
+                gap: 1rem;
+                justify-content: flex-end;
+                margin-top: 2rem;
+            }
+
+            .btn-cancel {
+                background: transparent;
+                border: 2px solid var(--light-brown);
+                color: var(--light-brown);
+                padding: 0.8rem 1.5rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            .btn-submit {
+                background: var(--orange);
+                border: none;
+                color: var(--white);
+                padding: 0.8rem 1.5rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            /* ===== SEARCH ===== */
+            .search-box {
+                margin-bottom: 1.5rem;
+            }
+
+            .search-box input {
+                width: 100%;
+                padding: 0.8rem 1rem;
+                border: 2px solid var(--cream);
+                border-radius: 10px;
+                font-size: 1rem;
+            }
+
+            /* ===== RESPONSIVE DESIGN ===== */
+            @media (max-width: 968px) {
+                .container {
+                    grid-template-columns: 1fr;
+                }
+
+                .sidebar {
+                    position: static;
+                }
+            }
+
+        </style>
+    </head>
+    <body>
+        <header>
+            <nav>
+                <a href="index.html" class="logo">
+                    BuyTicket <span class="admin-badge">ADMIN</span>
+                </a>
+                <div style="color: var(--white);">
+                    Admin User
+                </div>
+            </nav>
+        </header>
+
+        <div class="container">
+            <!-- ===== SIDEBAR ===== -->
+            <aside class="sidebar">
+                <div class="sidebar-title">Admin Panel</div>
+                <ul class="sidebar-menu">
+                    <li><a href="#" onclick="showSection('dashboard')" class="active">Dashboard</a></li>
+                    <li><a href="#" onclick="showSection('companies')">Firms</a></li>
+                    <li><a href="#" onclick="showSection('admins')">Firm Admins</a></li>
+                    <li><a href="#" onclick="showSection('coupons')">Coupons</a></li>
+                    <li><a href="#" onclick="showSection('users')">Users</a></li>
+                    <li><a href="#" onclick="showSection('reports')">Reports</a></li>
+                    <li><a href="#" onclick="showSection('settings')">Settings</a></li>
+                    <li><a href="index.html">Log out</a></li>
+                </ul>
+            </aside>
+
+            <!-- ===== MAIN CONTENT ===== -->
+            <main class="main-content">
+                <!-- ===== DASHBOARD SECTION ===== -->
+                <div id="dashboard-section">
+                    <div class="page-header">
+                        <h2>Dashboard</h2>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🏢</div>
+                            <div class="stat-label">Total Firms</div>
+                            <div class="stat-value">24</div>
+                        </div>
+                        <div class="stat-card blue">
+                            <div class="stat-icon">👤</div>
+                            <div class="stat-label">Firm Admins</div>
+                            <div class="stat-value">68</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-icon">🎫</div>
+                            <div class="stat-label">Active Coupons</div>
+                            <div class="stat-value">15</div>
+                        </div>
+                        <div class="stat-card brown">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-label">Total Users</div>
+                            <div class="stat-value">1,245</div>
+                        </div>
+                    </div>
+
+                    <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">Recent Activities</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Operation</th>
+                                    <th>User</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                        <tbody>
+                            <tr>
+                            <td>08.10.2025 14:30</td>
+                            <td>New firm added</td>
+                            <td>Admin</td>
+                            <td>New South Tourism</td>
+                            </tr>
+                            <tr>
+                                <td>08.10.2025 13:15</td>
+                                <td>Coupon created</td>
+                                <td>Admin</td>
+                                <td>DISCOUNT20 - 20%</td>
+                            </tr>
+                            <tr>
+                                <td>08.10.2025 11:45</td>
+                                <td>Firm admin assigned</td>
+                                <td>Admin</td>
+                                <td>Mehmet Demir - Metro Tourism</td>
+                            </tr>
+                        </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== COMPANIES SECTION ===== -->
+                <div id="companies-section" style="display:none;">
+                    <div class="page-header">
+                        <h2>Firms</h2>
+                        <button class="btn-add" onclick="openModal('company')">+Add new firm </button>
+                    </div>
+
+                    <div class="search-box">
+                        <input type="text" placeholder="Search firm...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Firm name</th>
+                                    <th>Telephone</th>
+                                    <th>E-mail</th>
+                                    <th>Number of admins</th>
+                                    <th>Status</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Metro Tourism</strong></td>
+                                    <td>0850 222 33 44</td>
+                                    <td>info@metro.com</td>
+                                    <td>5</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Pamukkale Tourism</strong></td>
+                                    <td>0850 333 44 55</td>
+                                    <td>info@pamukkale.com</td>
+                                    <td>4</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ali Osman Ulusoy</strong></td>
+                                    <td>0850 444 55 66</td>
+                                    <td>info@ulusoy.com</td>
+                                    <td>3</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kamil Koç</strong></td>
+                                    <td>0850 555 66 77</td>
+                                    <td>info@kamilkoc.com</td>
+                                    <td>6</td>
+                                    <td><span class="status-badge inactive">Passive</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+                <!-- ===== ADMINS SECTION ===== -->
+                <div id="admins-section" style="display: none;">
+                    <div class="page-header">
+                        <h2>Firm Admins</h2>
+                        <button class="btn-add" onclick="openModal('admin')">+Add new admin</button>
+                    </div>
+
+                    <div class="search-box">
+                        <input type="text" placeholder="Search admin...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name Surname</th>
+                                    <th>E-mail</th>
+                                    <th>Telephone</th>
+                                    <th>Firm</th>
+                                    <th>Status</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Mehmet Demir</strong></td>
+                                    <td>mehmet.demir@metro.com</td>
+                                    <td>0532 111 22 33</td>
+                                    <td>Metro Tourism</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ayşe Yılmaz</strong></td>
+                                    <td>ayse.yilmaz@pamukkale.com</td>
+                                    <td>0533 222 33 44</td>
+                                    <td>Pamukkale Tourism</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ali Kaya</strong></td>
+                                    <td>ali.kaya@ulusoy.com</td>
+                                    <td>0534 333 44 55</td>
+                                    <td>Ali Osman Ulusoy</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== COUPONS SECTION ===== -->
+                <div id="coupons-section" style="display:none;">
+                    <div class="page-header">
+                        <h2>Discount Coupons</h2>
+                        <button class="btn-add" onclick="openModal('coupon')">+Add new coupon</button>
+                    </div>
+
+                    <div class="search-box">
+                        <input type="text" placeholder="Search coupon...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Coupon code</th>
+                                    <th>Discount rate</th>
+                                    <th>Usage limit</th>
+                                    <th>Used</th>
+                                    <th>Last using time</th>
+                                    <th>Status</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>DISCOUNT10</strong></td>
+                                    <td>10%</td>
+                                    <td>1000</td>
+                                    <td>245</td>
+                                    <td>31.12.2025</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>DISCOUNT20</strong></td>
+                                    <td>20%</td>
+                                    <td>500</td>
+                                    <td>128</td>
+                                    <td>30.11.2025</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SUMMER2025  </strong></td>
+                                    <td>15%</td>
+                                    <td>2000</td>
+                                    <td>892</td>
+                                    <td>31.08.2025</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>BAYRAM50</strong></td>
+                                    <td>50%</td>
+                                    <td>100</td>
+                                    <td>100</td>
+                                    <td>15.04.2025</td>
+                                    <td><span class="status-badge inactive">Expired</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== USERS SECTION ===== -->
+                <div id="users-section" style="display:none;">
+                    <div class="page-header">
+                        <h2>Users</h2>
+                        <button class="btn-add" onclick="openModal('user')">+Add new user</button>
+                    </div>
+
+                    <div class="search-box">
+                        <input type="text" placeholder="Search user...">
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name Surname</th>
+                                    <th>E-mail</th>
+                                    <th>Telephone</th>
+                                    <th>Registration Date</th>
+                                    <th>Total Tickets</th>
+                                    <th>Status</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Ahmet Yılmaz</strong></td>
+                                    <td>ahmet.yilmaz@email.com</td>
+                                    <td>0532 111 22 33</td>
+                                    <td>15.03.2024</td>
+                                    <td>12</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fatma Demir</strong></td>
+                                    <td>fatma.demir@email.com</td>
+                                    <td>0533 222 33 44</td>
+                                    <td>22.05.2024</td>
+                                    <td>8</td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mehmet Kaya</strong></td>
+                                    <td>mehmet.kaya@email.com</td>
+                                    <td>0534 333 44 55</td>
+                                    <td>10.08.2024</td>
+                                    <td>3</td>
+                                    <td><span class="status-badge inactive">Inactive</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">✏️</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== REPORTS SECTION ===== -->
+                <div id="reports-section" style="display:none;">
+                    <div class="page-header">
+                        <h2>Reports</h2>
+                        <button class="btn-add" onclick="generateReport()">📊 Generate Report</button>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-label">Monthly Revenue</div>
+                            <div class="stat-value">₺45,230</div>
+                        </div>
+                        <div class="stat-card blue">
+                            <div class="stat-icon">🎫</div>
+                            <div class="stat-label">Tickets Sold</div>
+                            <div class="stat-value">1,847</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-label">New Users</div>
+                            <div class="stat-value">234</div>
+                        </div>
+                        <div class="stat-card brown">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-label">Avg Rating</div>
+                            <div class="stat-value">4.7</div>
+                        </div>
+                    </div>
+
+                    <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">Recent Reports</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Report Name</th>
+                                    <th>Type</th>
+                                    <th>Generated Date</th>
+                                    <th>Period</th>
+                                    <th>Status</th>
+                                    <th>Operations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Monthly Sales Report</strong></td>
+                                    <td>Sales</td>
+                                    <td>01.10.2024</td>
+                                    <td>September 2024</td>
+                                    <td><span class="status-badge active">Ready</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">📥</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>User Activity Report</strong></td>
+                                    <td>Users</td>
+                                    <td>28.09.2024</td>
+                                    <td>Q3 2024</td>
+                                    <td><span class="status-badge active">Ready</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon btn-edit">📥</button>
+                                            <button class="btn-icon btn-delete">🗑️</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== SETTINGS SECTION ===== -->
+                <div id="settings-section" style="display:none;">
+                    <div class="page-header">
+                        <h2>Settings</h2>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <!-- General Settings -->
+                        <div style="background: var(--cream); padding: 1.5rem; border-radius: 10px;">
+                            <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">General Settings</h3>
+                            <div class="form-group">
+                                <label>Site Name</label>
+                                <input type="text" value="BuyTicket" placeholder="Site name">
+                            </div>
+                            <div class="form-group">
+                                <label>Admin Email</label>
+                                <input type="email" value="admin@buyticket.com" placeholder="Admin email">
+                            </div>
+                            <div class="form-group">
+                                <label>Default Language</label>
+                                <select>
+                                    <option value="tr">Turkish</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                            <button class="btn-submit">Save Changes</button>
+                        </div>
+
+                        <!-- System Settings -->
+                        <div style="background: var(--cream); padding: 1.5rem; border-radius: 10px;">
+                            <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">System Settings</h3>
+                            <div class="form-group">
+                                <label>Max Ticket Per User</label>
+                                <input type="number" value="10" placeholder="Max tickets">
+                            </div>
+                            <div class="form-group">
+                                <label>Booking Timeout (minutes)</label>
+                                <input type="number" value="15" placeholder="Timeout">
+                            </div>
+                            <div class="form-group">
+                                <label>Enable Notifications</label>
+                                <select>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
+                            <button class="btn-submit">Save Changes</button>
+                        </div>
+                    </div>
+
+                    <!-- Security Settings -->
+                    <div style="background: var(--cream); padding: 1.5rem; border-radius: 10px; margin-top: 2rem;">
+                        <h3 style="color: var(--primary-brown); margin-bottom: 1rem;">Security Settings</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                            <div class="form-group">
+                                <label>Change Admin Password</label>
+                                <input type="password" placeholder="New password">
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <input type="password" placeholder="Confirm password">
+                            </div>
+                        </div>
+                        <button class="btn-submit">Change Password</button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+
+        <!-- ===== COMPANY MODAL ===== -->
+        <div id="company-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add new firm</h3>
+                    <button class="btn-close" onclick="closeModal('company')">x</button>
+                </div>
+                <form>
+                    <div class="form-group">
+                        <label>Firm Name</label>
+                        <input type="text" placeholder="Enter firm name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telephone</label>
+                        <input type="tel" placeholder="0850 XXX XX XX" required>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" placeholder="info@firm.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea rows="3" placeholder="Firm address"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select>
+                            <option value="active">Active</option>
+                            <option value="inactive">Passive</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="closeModal('company')">Cancel</button>
+                        <button type="submit" class="btn-submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ===== ADMIN MODAL ===== -->
+        <div id="admin-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add new firm admin</h3>
+                    <button class="btn-close" onclick="closeModal('admin')">x</button>
+                </div>
+                <form>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" placeholder="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Surname</label>
+                        <input type="text" placeholder="surname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" placeholder="admin@firm.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telephone</label>
+                        <input type="tel" placeholder="05XX XXX XX XX" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="******" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Select firm</label>
+                        <select required>
+                            <option value="">Select firm</option>
+                            <option value="1">Metro Tourism</option>
+                            <option value="2">Pamukkale Tourism</option>
+                            <option value="3">Ali Osman Ulusoy</option>
+                            <option value="4">Kamil Koç</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="closeModal('admin')">Cancel</button>
+                        <button type="submit" class="btn-submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== COUPON MODAL ===== -->
+        <div id="coupon-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create new coupon</h3>
+                    <button class="btn-close" onclick="closeModal('coupon')">x</button>
+                </div>
+                <form>
+                    <div class="form-group">
+                        <label>Coupon code</label>
+                        <input type="text" placeholder="DISCOUNT10" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Discount rate (%)</label>
+                        <input type="number" min="1" max="100" placeholder="10" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Usage limit</label>
+                        <input type="number" min="1" placeholder="1000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last usage date</label>
+                        <input type="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea rows="2" placeholder="Coupon description"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="closeModal('coupon')">Cancel</button>
+                        <button type="submit" class="btn-submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== USER MODAL ===== -->
+        <div id="user-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add new user</h3>
+                    <button class="btn-close" onclick="closeModal('user')">x</button>
+                </div>
+                <form>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" placeholder="Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Surname</label>
+                        <input type="text" placeholder="Surname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" placeholder="user@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telephone</label>
+                        <input type="tel" placeholder="05XX XXX XX XX" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="******" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="closeModal('user')">Cancel</button>
+                        <button type="submit" class="btn-submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // ===== SECTION NAVIGATION =====
+            function showSection(section) {
+                // Hide all sections
+                const sections = ['dashboard', 'companies', 'admins', 'coupons', 'users', 'reports', 'settings'];
+                sections.forEach(sectionName => {
+                    const element = document.getElementById(sectionName + '-section');
+                    if (element) {
+                        element.style.display = 'none';
+                    }
+                });
+
+                // Show selected section
+                const targetSection = document.getElementById(section + '-section');
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+
+                // Update active menu item
+                document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                }
+            }
+
+            // ===== MODAL FUNCTIONS =====
+            function openModal(type) {
+                const modal = document.getElementById(type + '-modal');
+                if (modal) {
+                    modal.classList.add('active');
+                }
+            }
+
+            function closeModal(type) {
+                const modal = document.getElementById(type + '-modal');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+            }
+
+            // ===== REPORT FUNCTIONS =====
+            function generateReport() {
+                alert('Report generation started! You will be notified when it\'s ready.');
+                // Here you would typically make an API call to generate the report
+            }
+
+            // ===== EVENT LISTENERS =====
+            // Close modal on outside click
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+
+            // Close modal on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal.active').forEach(modal => {
+                        modal.classList.remove('active');
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>
