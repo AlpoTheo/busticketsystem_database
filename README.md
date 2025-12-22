@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚌 Bus Ticket System
 ## CENG 301 Database Systems Project
 
@@ -236,4 +237,6 @@ Use tools like **Postman** or **curl** to test API endpoints.
 ## 📄 License
 
 This project is created for educational purposes as part of CENG 301 Database Systems course.
+=======
+>>>>>>> a1b0f2d7933c25630a441b5e8d316a948f571be9
 
