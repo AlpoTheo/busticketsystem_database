@@ -866,3 +866,7 @@ PRINT '  User: ahmet.yilmaz@email.com / password123';
 PRINT '  Admin: admin@busticket.com / password123';
 PRINT '========================================';
 GO
+
+
+USE BusTicketSystem;
+
