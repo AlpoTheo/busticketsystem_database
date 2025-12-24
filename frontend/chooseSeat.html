@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Seat Selection - BuyTicket</title>
+        <title>Seat Selection - BusTicket</title>
         <style>
             * {
                 margin: 0;
@@ -34,38 +34,88 @@
 
             /*header*/
             header {
-                background:linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
             }
 
             nav {
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
-                padding: 1rem 2rem;
+                padding: 0.8rem 2rem;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
 
             .logo {
-                font-size: 1.8rem;
-                font-weight: bold;
+                font-size: 1.6rem;
+                font-weight: 700;
                 color: var(--white);
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
                 text-decoration: none;
+            }
+
+            .logo-icon {
+                background: linear-gradient(135deg, var(--orange) 0%, #ff9500 100%);
+                padding: 0.5rem 0.7rem;
+                border-radius: 12px;
+                font-size: 1.3rem;
+                box-shadow: 0 4px 15px rgba(255, 111, 0, 0.4);
             }
 
             .user-info {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
+                gap: 0.8rem;
                 color: var(--white);
             }
 
-            .credit-badge {
-                background: var(--orange);
-                padding: 0.5rem 1rem;
-                border-radius: 20px;
+            .user-welcome {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                color: rgba(255,255,255,0.9);
+                font-size: 0.9rem;
+                padding-right: 0.8rem;
+                border-right: 1px solid rgba(255,255,255,0.2);
+            }
+
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.85rem;
                 font-weight: 600;
+            }
+
+            .credit-badge {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 25px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .credit-badge:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(0, 184, 148, 0.5);
             }
 
             /*container*/
@@ -175,9 +225,11 @@
 
             .seats-grid {
                 display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 1rem;
-                max-width: 300px;
+                /* 2 koltuk + koridor + 2 koltuk = 5 sütun */
+                /* Koridor dar olsun (0.5fr), koltuklar eşit (1fr) */
+                grid-template-columns: 1fr 1fr 0.5fr 1fr 1fr;
+                gap: 0.8rem;
+                max-width: 320px;
                 margin: 0 auto;
             }
 
@@ -217,6 +269,8 @@
             .seat.aisle {
                 background: transparent;
                 border: none;
+                pointer-events: none;
+                aspect-ratio: auto;
                 cursor: default;
             }
 
@@ -431,10 +485,12 @@
     <body>
         <header>
             <nav>
-                <a href="index.html" class="logo">🚌 BuyTicket</a>
-                <div class="user-info">
-                    <span>Ahmet Yılmaz</span>
-                    <div class="credit-badge">💳 1,500 TL</div>
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">🚌</span>
+                    BusTicket
+                </a>
+                <div class="user-info" id="user-info">
+                    <!-- Dinamik olarak güncellenecek -->
                 </div>
             </nav>
         </header>
@@ -539,10 +595,11 @@
                     </div>
                 </div>
             </div>
+            <!-- end of left column (seat selection area) -->
         </div>
-    </div>
 
-    <div class="summary-panel">
+        <!-- Right column: Summary Panel -->
+        <div class="summary-panel">
         <h3>Summary</h3>
 
         <div class="info-message">
@@ -592,11 +649,13 @@
 
         <button class="btn-purchase" id="purchase-btn" disabled>Make payment</button>
 
-        <div class="info-message" style="margin-top: 1rem;">
+        <div class="info-message" style="margin-top: 1rem;" id="credit-info-message">
             Your current credit: 1500 TL
         </div>
     </div>
+    <!-- end of summary-panel -->
 </div>
+<!-- end of container -->
 
 <script>
     // ===== API CONFIGURATION =====
@@ -680,18 +739,25 @@
     function loadUserData() {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         userCredit = user.credit_balance || 0;
+        const initials = (user.first_name?.[0] || 'U').toUpperCase();
         
-        const userInfo = document.querySelector('.user-info');
+        const userInfo = document.getElementById('user-info');
         if (userInfo) {
             userInfo.innerHTML = `
-                <span>${user.first_name || 'User'} ${user.last_name || ''}</span>
-                <div class="credit-badge">💳 ${userCredit.toLocaleString()} TL</div>
+                <div class="user-welcome">
+                    <div class="user-avatar">${initials}</div>
+                    <span>${user.first_name || 'User'}</span>
+                </div>
+                <a href="loadCredit.html" class="credit-badge" style="text-decoration: none; color: white;" title="Bakiye Yükle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    ${userCredit.toLocaleString('tr-TR')} ₺
+                </a>
             `;
         }
         
-        const creditInfo = document.querySelector('.info-message:last-child');
+        const creditInfo = document.getElementById('credit-info-message');
         if (creditInfo) {
-            creditInfo.textContent = `Your current credit: ${userCredit.toLocaleString()} TL`;
+            creditInfo.textContent = `Your current credit: ${userCredit.toLocaleString('tr-TR')} ₺`;
         }
     }
 
@@ -711,38 +777,79 @@
     }
 
     // ===== RENDER SEATS =====
+    // Otobüs koltuk düzeni: 2+2 (koridor ortada)
+    // [A] [B]  |koridor|  [C] [D]
     function renderSeats() {
         const seatsGrid = document.querySelector('.seats-grid');
         if (!seatsGrid || seatsData.length === 0) return;
         
         seatsGrid.innerHTML = '';
         
-        // Group by row
+        // Koltukları satıra göre grupla
         const rows = {};
         seatsData.forEach(seat => {
-            if (!rows[seat.SeatRow]) rows[seat.SeatRow] = [];
-            rows[seat.SeatRow].push(seat);
+            const rowNum = seat.SeatRow || Math.ceil(seat.SeatNumber / 4); // SeatRow yoksa hesapla
+            if (!rows[rowNum]) rows[rowNum] = [];
+            rows[rowNum].push(seat);
         });
         
-        // Render each row
-        Object.keys(rows).sort((a, b) => a - b).forEach(row => {
-            const rowSeats = rows[row].sort((a, b) => a.SeatColumn.localeCompare(b.SeatColumn));
+        // Her satırı render et
+        Object.keys(rows).sort((a, b) => parseInt(a) - parseInt(b)).forEach(row => {
+            const rowSeats = rows[row];
             
-            // A, B seats (left)
-            rowSeats.filter(s => ['A', 'B'].includes(s.SeatColumn)).forEach(seat => {
+            // Sütuna göre sırala (A, B, C, D veya koltuk numarasına göre)
+            rowSeats.sort((a, b) => {
+                if (a.SeatColumn && b.SeatColumn) {
+                    return a.SeatColumn.localeCompare(b.SeatColumn);
+                }
+                return a.SeatNumber - b.SeatNumber;
+            });
+            
+            // Sol taraf: A ve B koltukları (ilk 2 koltuk)
+            const leftSeats = rowSeats.filter(s => 
+                s.SeatColumn === 'A' || s.SeatColumn === 'B' ||
+                (!s.SeatColumn && rowSeats.indexOf(s) < 2)
+            );
+            
+            // Sağ taraf: C ve D koltukları (son 2 koltuk)
+            const rightSeats = rowSeats.filter(s => 
+                s.SeatColumn === 'C' || s.SeatColumn === 'D' ||
+                (!s.SeatColumn && rowSeats.indexOf(s) >= 2)
+            );
+            
+            // Sol koltukları ekle (en fazla 2)
+            leftSeats.slice(0, 2).forEach(seat => {
                 seatsGrid.appendChild(createSeatElement(seat));
             });
             
-            // Aisle
+            // Eksik sol koltuk varsa boş div ekle
+            for (let i = leftSeats.length; i < 2; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'seat empty-seat';
+                empty.style.visibility = 'hidden';
+                seatsGrid.appendChild(empty);
+            }
+            
+            // Koridor (ortadaki boşluk)
             const aisle = document.createElement('div');
             aisle.className = 'seat aisle';
             seatsGrid.appendChild(aisle);
             
-            // C, D seats (right)
-            rowSeats.filter(s => ['C', 'D'].includes(s.SeatColumn)).forEach(seat => {
+            // Sağ koltukları ekle (en fazla 2)
+            rightSeats.slice(0, 2).forEach(seat => {
                 seatsGrid.appendChild(createSeatElement(seat));
             });
+            
+            // Eksik sağ koltuk varsa boş div ekle
+            for (let i = rightSeats.length; i < 2; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'seat empty-seat';
+                empty.style.visibility = 'hidden';
+                seatsGrid.appendChild(empty);
+            }
         });
+        
+        console.log('Rendered seats:', seatsData.length, 'rows:', Object.keys(rows).length);
     }
 
     function createSeatElement(seat) {

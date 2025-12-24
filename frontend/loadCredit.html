@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bakiye Yükle - BusTicket</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-brown: #5D4037;
+            --light-brown: #8D6E63;
+            --orange: #FF6F00;
+            --light-orange: #FF8F00;
+            --yellow: #FFC107;
+            --light-yellow: #FFD54F;
+            --white: #FFFFFF;
+            --cream: #FFF8E1;
+            --text-dark: #3E2723;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* Header - sitenin geri kalanıyla aynı */
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, var(--orange) 0%, #ff9500 100%);
+            padding: 0.5rem 0.7rem;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 15px rgba(255, 111, 0, 0.4);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--orange), var(--yellow));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #e0e0e0;
+        }
+
+        .credit-badge {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+        }
+
+        /* Main Content */
+        .main-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-title h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: var(--primary-brown);
+        }
+
+        .page-title p {
+            color: var(--light-brown);
+            font-size: 1.1rem;
+        }
+
+        /* Current Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, var(--orange) 0%, var(--light-orange) 100%);
+            border-radius: 20px;
+            padding: 30px 40px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(255, 111, 0, 0.3);
+            color: white;
+        }
+
+        .balance-info h3 {
+            font-size: 1rem;
+            font-weight: 400;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .balance-amount {
+            font-size: 3rem;
+            font-weight: 700;
+        }
+
+        .balance-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+        }
+
+        /* Amount Selection */
+        .amount-section {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(93, 64, 55, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-brown);
+            font-weight: 600;
+        }
+
+        .amount-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .amount-btn {
+            background: var(--cream);
+            border: 2px solid rgba(93, 64, 55, 0.15);
+            border-radius: 15px;
+            padding: 20px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .amount-btn:hover {
+            background: rgba(255, 193, 7, 0.2);
+            border-color: var(--yellow);
+            transform: translateY(-3px);
+        }
+
+        .amount-btn.selected {
+            background: linear-gradient(135deg, var(--orange), var(--light-orange));
+            border-color: transparent;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 111, 0, 0.35);
+        }
+
+        .amount-btn .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: block;
+        }
+
+        .amount-btn.selected .value {
+            color: white;
+        }
+
+        .amount-btn .currency {
+            font-size: 0.85rem;
+            color: var(--light-brown);
+        }
+
+        .amount-btn.selected .currency {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Custom Amount */
+        .custom-amount {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .custom-amount label {
+            font-weight: 600;
+            white-space: nowrap;
+            color: var(--primary-brown);
+        }
+
+        .custom-amount input {
+            flex: 1;
+            background: var(--cream);
+            border: 2px solid rgba(93, 64, 55, 0.15);
+            border-radius: 12px;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .custom-amount input:focus {
+            outline: none;
+            border-color: var(--orange);
+            background: white;
+        }
+
+        .custom-amount input::placeholder {
+            color: var(--light-brown);
+        }
+
+        /* Payment Method */
+        .payment-section {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(93, 64, 55, 0.1);
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .payment-btn {
+            background: var(--cream);
+            border: 2px solid rgba(93, 64, 55, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-dark);
+        }
+
+        .payment-btn:hover {
+            background: rgba(255, 193, 7, 0.15);
+            border-color: var(--yellow);
+        }
+
+        .payment-btn.selected {
+            background: linear-gradient(135deg, var(--primary-brown), var(--light-brown));
+            border-color: transparent;
+            box-shadow: 0 8px 25px rgba(93, 64, 55, 0.3);
+            color: white;
+        }
+
+        .payment-icon {
+            font-size: 2rem;
+        }
+
+        .payment-info h4 {
+            font-size: 1rem;
+            margin-bottom: 3px;
+        }
+
+        .payment-info p {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--orange), var(--light-orange));
+            border: none;
+            border-radius: 15px;
+            padding: 18px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 5px 20px rgba(255, 111, 0, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 111, 0, 0.4);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Success Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            padding: 50px;
+            text-align: center;
+            max-width: 450px;
+            animation: modalPop 0.4s ease;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        @keyframes modalPop {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-icon {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, var(--orange), var(--yellow));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px;
+            margin: 0 auto 25px;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 111, 0, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(255, 111, 0, 0); }
+        }
+
+        .modal-content h2 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            color: var(--primary-brown);
+        }
+
+        .modal-content p {
+            color: var(--light-brown);
+            margin-bottom: 10px;
+        }
+
+        .modal-content .new-balance {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--orange);
+            margin: 20px 0;
+        }
+
+        .modal-btn {
+            background: linear-gradient(135deg, var(--primary-brown), var(--light-brown));
+            border: none;
+            border-radius: 12px;
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(93, 64, 55, 0.3);
+        }
+
+        /* Back Button */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--light-brown);
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--primary-brown);
+        }
+
+        /* Not logged in */
+        .login-prompt {
+            text-align: center;
+            padding: 60px 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .login-prompt h2 {
+            margin-bottom: 15px;
+            color: var(--orange);
+        }
+
+        .login-prompt p {
+            color: var(--light-brown);
+            margin-bottom: 25px;
+        }
+
+        .login-prompt a {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--orange), var(--light-orange));
+            color: white;
+            text-decoration: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .login-prompt a:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(255, 111, 0, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .amount-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .payment-methods {
+                grid-template-columns: 1fr;
+            }
+
+            .balance-card {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .balance-amount {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <a href="index.html" class="logo">
+                <span class="logo-icon">🚌</span>
+                <span>BusTicket</span>
+            </a>
+            <div class="user-section" id="userSection">
+                <!-- Filled by JS -->
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <a href="MyTickets.html" class="back-link">← Hesabıma Dön</a>
+
+        <div class="page-title">
+            <h1>💳 Bakiye Yükle</h1>
+            <p>Hesabınıza kolayca bakiye yükleyin ve bilet alın</p>
+        </div>
+
+        <!-- Content will be loaded by JS based on login status -->
+        <div id="mainContent">
+            <!-- Loading... -->
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-content">
+            <div class="success-icon">✓</div>
+            <h2>Bakiye Yüklendi!</h2>
+            <p>Hesabınıza başarıyla bakiye eklendi</p>
+            <div class="new-balance" id="newBalanceDisplay">₺0</div>
+            <p style="font-size: 0.9rem;">Yeni bakiyeniz</p>
+            <button class="modal-btn" onclick="closeModal()">Tamam</button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let selectedAmount = 0;
+        let selectedPaymentMethod = 'CreditCard';
+        let currentBalance = 0;
+        let userData = null;
+
+        // On page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+        });
+
+        // Load user data from localStorage
+        function loadUserData() {
+            const userStr = localStorage.getItem('user');
+            
+            if (!userStr) {
+                showLoginPrompt();
+                return;
+            }
+
+            userData = JSON.parse(userStr);
+            currentBalance = userData.credit_balance || 0;
+
+            // Update header
+            updateHeader();
+
+            // Show main content
+            showMainContent();
+        }
+
+        // Update header with user info
+        function updateHeader() {
+            const userSection = document.getElementById('userSection');
+            const initial = userData.first_name ? userData.first_name.charAt(0).toUpperCase() : 'U';
+            
+            userSection.innerHTML = `
+                <div class="user-avatar">${initial}</div>
+                <span class="user-name">${userData.first_name || 'Kullanıcı'}</span>
+                <div class="credit-badge">
+                    <span>💰</span>
+                    <span id="headerBalance">₺${currentBalance.toLocaleString('tr-TR')}</span>
+                </div>
+            `;
+        }
+
+        // Show login prompt if not logged in
+        function showLoginPrompt() {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="login-prompt">
+                    <h2>⚠️ Giriş Yapmalısınız</h2>
+                    <p>Bakiye yüklemek için önce hesabınıza giriş yapın</p>
+                    <a href="login.html">Giriş Yap</a>
+                </div>
+            `;
+            document.getElementById('userSection').innerHTML = `
+                <a href="login.html" style="color: #fff; text-decoration: none; background: linear-gradient(135deg, #667eea, #764ba2); padding: 10px 25px; border-radius: 10px; font-weight: 500;">Giriş Yap</a>
+            `;
+        }
+
+        // Show main content for logged in users
+        function showMainContent() {
+            document.getElementById('mainContent').innerHTML = `
+                <!-- Current Balance -->
+                <div class="balance-card">
+                    <div class="balance-info">
+                        <h3>Mevcut Bakiyeniz</h3>
+                        <div class="balance-amount" id="currentBalance">₺${currentBalance.toLocaleString('tr-TR')}</div>
+                    </div>
+                    <div class="balance-icon">💰</div>
+                </div>
+
+                <!-- Amount Selection -->
+                <div class="amount-section">
+                    <h3 class="section-title">💵 Yüklenecek Tutar</h3>
+                    <div class="amount-grid">
+                        <button class="amount-btn" onclick="selectAmount(100, this)">
+                            <span class="value">100</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(250, this)">
+                            <span class="value">250</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(500, this)">
+                            <span class="value">500</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(1000, this)">
+                            <span class="value">1.000</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(2000, this)">
+                            <span class="value">2.000</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(5000, this)">
+                            <span class="value">5.000</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(10000, this)">
+                            <span class="value">10.000</span>
+                            <span class="currency">TL</span>
+                        </button>
+                        <button class="amount-btn" onclick="selectAmount(20000, this)">
+                            <span class="value">20.000</span>
+                            <span class="currency">TL</span>
+                        </button>
+                    </div>
+                    <div class="custom-amount">
+                        <label>Özel Tutar:</label>
+                        <input type="number" id="customAmount" placeholder="Tutar girin (₺)" min="10" max="50000" oninput="handleCustomAmount(this)">
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="payment-section">
+                    <h3 class="section-title">💳 Ödeme Yöntemi</h3>
+                    <div class="payment-methods">
+                        <button class="payment-btn selected" onclick="selectPayment('CreditCard', this)">
+                            <span class="payment-icon">💳</span>
+                            <div class="payment-info">
+                                <h4>Kredi / Banka Kartı</h4>
+                                <p>Anında yükleme</p>
+                            </div>
+                        </button>
+                        <button class="payment-btn" onclick="selectPayment('BankTransfer', this)">
+                            <span class="payment-icon">🏦</span>
+                            <div class="payment-info">
+                                <h4>Havale / EFT</h4>
+                                <p>Banka transferi</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="submit-btn" id="submitBtn" onclick="loadCredit()" disabled>
+                    <span>💰</span>
+                    <span id="submitBtnText">Tutar Seçin</span>
+                </button>
+            `;
+        }
+
+        // Select preset amount
+        function selectAmount(amount, btn) {
+            // Clear custom input
+            const customInput = document.getElementById('customAmount');
+            if (customInput) customInput.value = '';
+
+            // Update selection
+            document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            selectedAmount = amount;
+            updateSubmitButton();
+        }
+
+        // Handle custom amount input
+        function handleCustomAmount(input) {
+            // Clear preset selection
+            document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+
+            selectedAmount = parseFloat(input.value) || 0;
+            updateSubmitButton();
+        }
+
+        // Select payment method
+        function selectPayment(method, btn) {
+            document.querySelectorAll('.payment-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedPaymentMethod = method;
+        }
+
+        // Update submit button state
+        function updateSubmitButton() {
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('submitBtnText');
+
+            if (selectedAmount >= 10) {
+                btn.disabled = false;
+                btnText.textContent = `₺${selectedAmount.toLocaleString('tr-TR')} Yükle`;
+            } else {
+                btn.disabled = true;
+                btnText.textContent = 'Tutar Seçin (min ₺10)';
+            }
+        }
+
+        // Load credit API call
+        async function loadCredit() {
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('submitBtnText');
+
+            btn.disabled = true;
+            btnText.textContent = 'Yükleniyor...';
+
+            try {
+                const response = await fetch('/api/credit/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: selectedAmount,
+                        payment_method: selectedPaymentMethod
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local storage with new balance
+                    const newBalance = result.new_credit_balance || (currentBalance + selectedAmount);
+                    userData.credit_balance = newBalance;
+                    localStorage.setItem('user', JSON.stringify(userData));
+
+                    // Show success modal
+                    showSuccessModal(newBalance);
+
+                    // Update displays
+                    currentBalance = newBalance;
+                    document.getElementById('currentBalance').textContent = `₺${newBalance.toLocaleString('tr-TR')}`;
+                    document.getElementById('headerBalance').textContent = `₺${newBalance.toLocaleString('tr-TR')}`;
+
+                    // Reset selection
+                    selectedAmount = 0;
+                    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+                    document.getElementById('customAmount').value = '';
+                    updateSubmitButton();
+                } else {
+                    alert('Hata: ' + (result.message || 'Bakiye yüklenemedi'));
+                    btn.disabled = false;
+                    btnText.textContent = `₺${selectedAmount.toLocaleString('tr-TR')} Yükle`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Bağlantı hatası. Lütfen tekrar deneyin.');
+                btn.disabled = false;
+                btnText.textContent = `₺${selectedAmount.toLocaleString('tr-TR')} Yükle`;
+            }
+        }
+
+        // Show success modal
+        function showSuccessModal(newBalance) {
+            document.getElementById('newBalanceDisplay').textContent = `₺${newBalance.toLocaleString('tr-TR')}`;
+            document.getElementById('successModal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('successModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
+

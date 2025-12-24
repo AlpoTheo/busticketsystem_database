@@ -25,6 +25,10 @@
             }
 
             /* ===== BODY & LAYOUT ===== */
+            html {
+                scroll-behavior: smooth;
+            }
+            
             body {
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 background: linear-gradient(135deg, var(--cream) 0%, var(--light-yellow) 100%);
@@ -33,93 +37,161 @@
             }
             /* ===== HEADER & NAVIGATION ===== */
             header {
-                background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 position: sticky;
                 top: 0;
                 z-index: 1000;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
             }
 
             nav {
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
-                padding: 1rem 2rem;
+                padding: 0.8rem 2rem;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                gap: 2rem;
             }
 
             .logo {
-                font-size: 1.8rem;
-                font-weight: bold;
+                font-size: 1.6rem;
+                font-weight: 700;
                 color: var(--white);
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 0.6rem;
+                text-decoration: none;
+                letter-spacing: -0.5px;
             }
 
-            .logo::before {
-                content: "🚌";
-                font-size: 2rem;
+            .logo-icon {
+                background: linear-gradient(135deg, var(--orange) 0%, #ff9500 100%);
+                padding: 0.5rem 0.7rem;
+                border-radius: 12px;
+                font-size: 1.3rem;
+                box-shadow: 0 4px 15px rgba(255, 111, 0, 0.4);
             }
 
             .nav-links {
                 display: flex;
-                gap: 2rem;
+                gap: 0.5rem;
                 list-style: none;
+                background: rgba(255,255,255,0.05);
+                padding: 0.4rem;
+                border-radius: 12px;
             }
 
             .nav-links a {
-                color: var(--white);
+                color: rgba(255,255,255,0.8);
                 text-decoration: none;
                 font-weight: 500;
-                transition: color 0.3s;
-                padding: 0.5rem 1rem;
-                border-radius: 5px;
+                font-size: 0.9rem;
+                transition: all 0.3s ease;
+                padding: 0.6rem 1.2rem;
+                border-radius: 8px;
             }
 
             .nav-links a:hover {
-                background: rgba(255, 255, 255, 0.1);
-                color: var(--light-yellow);
-            }
-
-            .auth-buttons {
-                display: flex;
-                gap: 1rem;
-            }
-
-            /* ===== BUTTONS ===== */
-            .btn {
-                padding: 0.6rem 1.5rem;
-                border: none;
-                border-radius: 25px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s;
-                text-decoration: none;
-                display: inline-block;
-            }
-
-            .btn-login {
-                background: transparent;
+                background: rgba(255,255,255,0.1);
                 color: var(--white);
-                border: 2px solid var(--white);
             }
 
-            .btn-login:hover {
-                background: var(--white);
-                color: var(--primary-brown);
-            }
-
-            .btn-register {
+            .nav-links a.active {
                 background: var(--orange);
                 color: var(--white);
             }
 
-            .btn-register:hover {
-                background: var(--light-orange);
+            .auth-buttons {
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+            }
+
+            /* ===== USER INFO (Giriş yapınca) ===== */
+            .user-welcome {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                color: rgba(255,255,255,0.9);
+                font-size: 0.9rem;
+                padding-right: 0.8rem;
+                border-right: 1px solid rgba(255,255,255,0.2);
+            }
+
+            .user-welcome .user-avatar {
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+
+            .credit-badge {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 25px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .credit-badge:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(0, 184, 148, 0.5);
+            }
+
+            .credit-badge svg {
+                width: 16px;
+                height: 16px;
+            }
+
+            /* ===== BUTTONS ===== */
+            .btn {
+                padding: 0.6rem 1.4rem;
+                border: none;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+            }
+
+            .btn-login {
+                background: rgba(255,255,255,0.1);
+                color: var(--white);
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+
+            .btn-login:hover {
+                background: rgba(255,255,255,0.2);
                 transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(255,111, 0, 0.3);
+            }
+
+            .btn-register, .btn-logout {
+                background: linear-gradient(135deg, var(--orange) 0%, #ff9500 100%);
+                color: var(--white);
+                box-shadow: 0 4px 15px rgba(255, 111, 0, 0.3);
+            }
+
+            .btn-register:hover, .btn-logout:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 111, 0, 0.4);
             }
 
             /* ===== HERO SECTION ===== */
@@ -265,22 +337,31 @@
     <body>
         <header>
             <nav>
-                <div class="logo">BuyTicket</div>
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">🚌</span>
+                    BusTicket
+                </a>
                 <ul class="nav-links">
-                    <li><a href="index.html">Home Page</a></li>
-                    <li><a href="services.html">Services</a></li>
-                    <li><a href="#about">About Us</a></li>
-                    <li><a href="#contact">Contact Us</a></li>
+                    <li><a href="index.html" class="active">Home</a></li>
+                    <li><a href="#search-section">Trips</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
                 </ul>
                 <div class="auth-buttons" id="auth-buttons">
-                    <a href="login.html" class="btn btn-login">Log in</a>
-                    <a href="register.html" class="btn btn-register">Sign up</a>
+                    <a href="login.html" class="btn btn-login">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                        Login
+                    </a>
+                    <a href="register.html" class="btn btn-register">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        Sign Up
+                    </a>
                 </div>
             </nav>
         </header>
 
         <main>
-            <section class="hero">
+            <section class="hero" id="search-section">
                 <h1>Buy Your Bus Ticket Easily</h1>
                 <p>Comfortable journey everywhere in Turkey.</p>
 
@@ -341,7 +422,7 @@
         </main>
 
         <footer>
-            <p>&copy; 2025 BuyTicket - All rights reserved.</p>
+            <p>&copy; 2025 BusTicket - All rights reserved.</p>
         </footer>
 
         <script>
@@ -382,13 +463,25 @@
                 
                 if (isLoggedIn) {
                     const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    const initials = (user.first_name?.[0] || 'U').toUpperCase();
+                    
                     authButtons.innerHTML = `
-                        <span style="color: white; margin-right: 10px;">Welcome, ${user.first_name || 'User'}</span>
-                        <span style="background: var(--orange); color: white; padding: 0.5rem 1rem; border-radius: 20px; margin-right: 10px;">
-                            💳 ${(user.credit_balance || 0).toLocaleString()} TL
-                        </span>
-                        <a href="MyTickets.html" class="btn btn-login">My Tickets</a>
-                        <button onclick="logout()" class="btn btn-register" style="border: none; cursor: pointer;">Logout</button>
+                        <div class="user-welcome">
+                            <div class="user-avatar">${initials}</div>
+                            <span>${user.first_name || 'User'}</span>
+                        </div>
+                        <a href="loadCredit.html" class="credit-badge" style="text-decoration: none; color: white;" title="Bakiye Yükle">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                            ${(user.credit_balance || 0).toLocaleString('tr-TR')} ₺
+                        </a>
+                        <a href="MyTickets.html" class="btn btn-login">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h6m4 0h10M8 6l-6 6 6 6m8-12l6 6-6 6"/></svg>
+                            My Tickets
+                        </a>
+                        <button onclick="logout()" class="btn btn-logout">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Logout
+                        </button>
                     `;
                 }
             }

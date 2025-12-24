@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>My Tickets - BuyTicket</title>
+        <title>My Tickets - BusTicket</title>
         <style>
             * {
                 margin: 0;
@@ -34,55 +34,116 @@
 
             /* Header */
             header {
-                background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
             }
 
             nav {
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
-                padding: 1rem 2rem;
+                padding: 0.8rem 2rem;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
 
             .logo {
-                font-size: 1.8rem;
-                font-weight: bold;
+                font-size: 1.6rem;
+                font-weight: 700;
                 color: var(--white);
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
                 text-decoration: none;
+            }
+
+            .logo-icon {
+                background: linear-gradient(135deg, var(--orange) 0%, #ff9500 100%);
+                padding: 0.5rem 0.7rem;
+                border-radius: 12px;
+                font-size: 1.3rem;
+                box-shadow: 0 4px 15px rgba(255, 111, 0, 0.4);
             }
 
             .nav-menu {
                 display: flex;
-                gap: 2rem;
+                gap: 0.5rem;
                 align-items: center;
+                background: rgba(255,255,255,0.05);
+                padding: 0.4rem;
+                border-radius: 12px;
+                list-style: none;
             }
 
             .nav-menu a {
-                color: var(--white);
+                color: rgba(255,255,255,0.8);
                 text-decoration: none;
                 font-weight: 500;
-                transition: color 0.3s;
+                font-size: 0.9rem;
+                transition: all 0.3s ease;
+                padding: 0.6rem 1.2rem;
+                border-radius: 8px;
             }
 
             .nav-menu a:hover {
-                color: var(--yellow);
+                background: rgba(255,255,255,0.1);
+                color: var(--white);
+            }
+
+            .nav-menu a.active {
+                background: var(--orange);
+                color: var(--white);
             }
 
             .user-info {
                 display: flex;
                 align-items: center;
-                gap: 1rem;
+                gap: 0.8rem;
                 color: var(--white);
             }
 
-            .credit-badge {
-                background: var(--orange);
-                padding: 0.5rem 1rem;
-                border-radius: 20px;
+            .user-welcome {
+                display: flex;
+                align-items: center;
+                gap: 0.6rem;
+                color: rgba(255,255,255,0.9);
+                font-size: 0.9rem;
+            }
+
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.85rem;
                 font-weight: 600;
+            }
+
+            .credit-badge {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 25px;
+                font-weight: 600;
+                font-size: 0.85rem;
+                box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+
+            .credit-badge:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(0, 184, 148, 0.5);
             }
 
             /* Container */
@@ -632,15 +693,17 @@
     <body>
         <header>
             <nav>
-                <a href="index.html" class="logo">🚌 BuyTicket</a>
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">🚌</span>
+                    BusTicket
+                </a>
                 <div class="nav-menu">
-                    <a href="index.html">Home page</a>
-                    <a href="services.html">Search Services</a>
-                    <a href="MyTickets.html">My tickets</a>
+                    <a href="index.html">Home</a>
+                    <a href="index.html#search-section">Trips</a>
+                    <a href="MyTickets.html" class="active">My Tickets</a>
                 </div>
-                <div class="user-info">
-                    <span>Ahmet Yılmaz</span>
-                    <div class="credit-badge">💳 1,150 TL</div>
+                <div class="user-info" id="header-user-info">
+                    <!-- Dinamik olarak güncellenecek -->
                 </div>
             </nav>
         </header>
@@ -650,8 +713,8 @@
             <aside class="sidebar">
                 <div class="profile-section">
                     <div class="profile-avatar">👤</div>
-                    <div class="profile-name">Ahmet Yılmaz</div>
-                    <div class="profile-email">ahmet.yilmaz@email.com</div>
+                    <div class="profile-name" id="sidebar-user-name">User</div>
+                    <div class="profile-email" id="sidebar-user-email">user@email.com</div>
                 </div>
 
                 <ul class="sidebar-menu">
@@ -665,7 +728,7 @@
 
                 <div class="credit-info">
                     <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">Current Credit</div>
-                    <div class="credit-amount">1,150 TL</div>
+                    <div class="credit-amount" id="sidebar-credit">0 TL</div>
                     <button class="btn-add-credit">+ Add credit</button>
                 </div>
             </aside>
@@ -683,157 +746,7 @@
                 </div>
 
                 <div class="tickets-list">
-                    <!--Ticket 1 -upcoming-->
-                    <div class="ticket-card">
-                        <span class="ticket-status upcoming">Upcoming</span>
-
-                        <div class="ticket-header">
-                            <div class="company-info">
-                                <h3>Metro Tourism</h3>
-                                <div class="ticket-number">Ticket No: MT-2025-089456</div>
-                            </div>
-                        </div>
-
-                        <div class="ticket-journey">
-                            <div class="journey-point">
-                                <div class="journey-time">09:00</div>
-                                <div class="journey-location">Istanbul</div>
-                                <div class="journey-date">October 15, 2025</div>
-                            </div>
-                            <div class="journey-arrow">-></div>
-                            <div class="journey-point">
-                                <div class="journey-time">14:30</div>
-                                <div class="journey-location">Ankara</div>
-                                <div class="journey-date">October 15, 2025</div>
-                            </div>
-                        </div>
-
-                        <div class="ticket-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Passenger Name</span>
-                                <span class="detail-value">Ahmet Yılmaz</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Seat No</span>
-                                <span class="detail-value">7, 8</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Price</span>
-                                <span class="detail-value">630 TL</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Time</span>
-                                <span class="detail-value">5 hours 30 min</span>
-                            </div>
-                        </div>
-
-                        <div class="ticket-actions">
-                            <button class="btn btn-download">Download PDF</button>
-                            <button class="btn btn-cancel">Cancel</button>
-                            <button class="btn btn-details">Details</button>
-                        </div>
-                    </div>
-
-                    <!--Ticket 2 - Upcoming-->
-                    <div class="ticket-card">
-                        <span class="ticket-status upcoming">Upcoming</span>
-
-                        <div class="ticket-header">
-                            <div class="company-info">
-                                <h3>Pamukkale Tourism</h3>
-                                <div class="ticket-number">Ticket No: PM-2025-012387</div>
-                            </div>
-                        </div>
-
-                        <div class="ticket-journey">
-                            <div class="journey-point">
-                                <div class="journey-time">14:00</div>
-                                <div class="journey-location">Ankara</div>
-                                <div class="journey-date">October 20, 2025</div>
-                            </div>
-                            <div class="journey-arrow">-></div>
-                            <div class="journey-point">
-                                <div class="journey-time">22:30</div>
-                                <div class="journey-location">Izmir</div>
-                                <div class="journey-date">October 20, 2025</div>
-                            </div>
-                        </div>
-
-                        <div class="ticket-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Passenger Name</span>
-                                <span class="detail-value">Ahmet Yılmaz</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Seat No</span>
-                                <span class="detail-value">15</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Price</span>
-                                <span class="detail-value">280 TL</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Time</span>
-                                <span class="detail-value">8 hours 30 min</span>
-                            </div>
-                        </div>
-
-                        <div class="ticket-actions">
-                            <button class="btn btn-download">Download PDF</button>
-                            <button class="btn btn-cancel">Cancel</button>
-                            <button class="btn btn-details">Details</button>
-                        </div>
-                    </div>
-
-                    <!--Ticket 3 - Completed-->
-                    <div class="ticket-card">
-                        <span class="ticket-status completed">Completed</span>
-
-                        <div class="ticket-header">
-                            <div class="company-info">
-                                <h3>Kamil Koç</h3>
-                                <div class="ticket-number">Ticket No: KK-2025-056234</div>
-                            </div>
-                        </div>
-
-                        <div class="ticket-journey">
-                            <div class="journey-point">
-                                <div class="journey-time">08:30</div>
-                                <div class="journey-location">Istanbul</div>
-                                <div class="journey-date">September 28, 2025</div>
-                            </div>
-                            <div class="journey-arrow">-></div>
-                            <div class="journey-point">
-                                <div class="journey-time">19:00</div>
-                                <div class="journey-location">Antalya</div>
-                                <div class="journey-date">September 28, 2025</div>
-                            </div>
-                        </div>
-
-                        <div class="ticket-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Passenger Name</span>
-                                <span class="detail-value">Ahmet Yılmaz</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Seat No</span>
-                                <span class="detail-value">12</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Price</span>
-                                <span class="detail-value">450 TL</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Time</span>
-                                <span class="detail-value">10 hours 30 min</span>
-                            </div>
-                        </div>
-
-                        <div class="ticket-actions">
-                            <button class="btn btn-download">Download PDF</button>
-                            <button class="btn btn-details">Details</button>
-                        </div>
-                    </div>
+                    <!-- Tickets will be loaded dynamically from API -->
                 </div>
             </main>
 
@@ -846,23 +759,23 @@
                     <form>
                         <div class="form-group">
                             <label for="fullName">Full Name</label>
-                            <input type="text" id="fullName" value="Ahmet Yılmaz" required>
+                            <input type="text" id="fullName" value="" required>
                         </div>
                         <div class="form-group">
                             <label for="email">Email</label>
-                            <input type="email" id="email" value="ahmet.yilmaz@email.com" required>
+                            <input type="email" id="email" value="" required readonly>
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number</label>
-                            <input type="tel" id="phone" value="+90 555 123 4567" required>
+                            <input type="tel" id="phone" value="" required>
                         </div>
                         <div class="form-group">
                             <label for="birthDate">Birth Date</label>
-                            <input type="date" id="birthDate" value="1990-05-15" required>
+                            <input type="date" id="birthDate" value="">
                         </div>
                         <div class="form-group">
                             <label for="address">Address</label>
-                            <textarea id="address" rows="3">Istanbul, Turkey</textarea>
+                            <textarea id="address" rows="3"></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Update Profile</button>
                     </form>
@@ -875,30 +788,7 @@
                     <h2>My Coupons</h2>
                 </div>
                 <div class="coupons-list">
-                    <div class="coupon-card active">
-                        <div class="coupon-code">DISCOUNT10</div>
-                        <div class="coupon-details">
-                            <div class="coupon-discount">10% Discount</div>
-                            <div class="coupon-expiry">Expires: Dec 31, 2025</div>
-                        </div>
-                        <div class="coupon-status">Active</div>
-                    </div>
-                    <div class="coupon-card used">
-                        <div class="coupon-code">SUMMER25</div>
-                        <div class="coupon-details">
-                            <div class="coupon-discount">15% Discount</div>
-                            <div class="coupon-expiry">Used: Oct 10, 2025</div>
-                        </div>
-                        <div class="coupon-status">Used</div>
-                    </div>
-                    <div class="coupon-card expired">
-                        <div class="coupon-code">WELCOME20</div>
-                        <div class="coupon-details">
-                            <div class="coupon-discount">20% Discount</div>
-                            <div class="coupon-expiry">Expired: Sep 30, 2025</div>
-                        </div>
-                        <div class="coupon-status">Expired</div>
-                    </div>
+                    <!-- Coupons will be loaded dynamically from API -->
                 </div>
             </div>
 
@@ -909,7 +799,7 @@
                 </div>
                 <div class="topup-form">
                     <div class="current-credit">
-                        <h3>Current Credit: 1,150 TL</h3>
+                        <h3 id="topup-current-credit">Current Credit: 0 TL</h3>
                     </div>
                     <div class="topup-amounts">
                         <button class="amount-btn" data-amount="50">50 TL</button>
@@ -982,24 +872,49 @@
             function loadUserData() {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
                 userCredit = user.credit_balance || 0;
-
-                // Update sidebar info
-                const userNameEl = document.querySelector('.user-name');
-                const userEmailEl = document.querySelector('.user-email');
-                const creditEl = document.querySelector('.credit-amount');
                 
-                if (userNameEl) userNameEl.textContent = `${user.first_name || 'User'} ${user.last_name || ''}`;
-                if (userEmailEl) userEmailEl.textContent = user.email || '';
-                if (creditEl) creditEl.textContent = `${userCredit.toLocaleString()} TL`;
+                const fullName = `${user.first_name || 'User'} ${user.last_name || ''}`.trim();
+                const initials = (user.first_name?.[0] || 'U').toUpperCase();
+
+                // Update header with new modern style
+                const headerUserInfo = document.getElementById('header-user-info');
+                if (headerUserInfo) {
+                    headerUserInfo.innerHTML = `
+                        <div class="user-welcome">
+                            <div class="user-avatar">${initials}</div>
+                            <span>${user.first_name || 'User'}</span>
+                        </div>
+                        <a href="loadCredit.html" class="credit-badge" style="text-decoration: none; color: white;" title="Bakiye Yükle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                            ${userCredit.toLocaleString('tr-TR')} ₺
+                        </a>
+                    `;
+                }
+
+                // Update sidebar
+                const sidebarName = document.getElementById('sidebar-user-name');
+                const sidebarEmail = document.getElementById('sidebar-user-email');
+                const sidebarCredit = document.getElementById('sidebar-credit');
+                if (sidebarName) sidebarName.textContent = fullName;
+                if (sidebarEmail) sidebarEmail.textContent = user.email || '';
+                if (sidebarCredit) sidebarCredit.textContent = `${userCredit.toLocaleString('tr-TR')} ₺`;
 
                 // Update profile form
-                document.getElementById('fullName').value = `${user.first_name || ''} ${user.last_name || ''}`;
-                document.getElementById('email').value = user.email || '';
-                document.getElementById('phone').value = user.phone || '';
+                const fullNameInput = document.getElementById('fullName');
+                const emailInput = document.getElementById('email');
+                const phoneInput = document.getElementById('phone');
+                const birthDateInput = document.getElementById('birthDate');
+                const addressInput = document.getElementById('address');
+                
+                if (fullNameInput) fullNameInput.value = fullName;
+                if (emailInput) emailInput.value = user.email || '';
+                if (phoneInput) phoneInput.value = user.phone || '';
+                if (birthDateInput && user.birth_date) birthDateInput.value = user.birth_date;
+                if (addressInput) addressInput.value = user.address || '';
 
                 // Update top-up section
-                const topupCredit = document.querySelector('.current-credit h3');
-                if (topupCredit) topupCredit.textContent = `Current Credit: ${userCredit.toLocaleString()} TL`;
+                const topupCredit = document.getElementById('topup-current-credit');
+                if (topupCredit) topupCredit.textContent = `Current Credit: ${userCredit.toLocaleString('tr-TR')} ₺`;
             }
 
             // ===== LOAD TICKETS =====
