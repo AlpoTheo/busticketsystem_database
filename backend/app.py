@@ -1,25 +1,19 @@
-# ============================================================================
-# BUS TICKET SYSTEM - Flask API Application
-# CENG 301 Database Systems Term Project
-# ============================================================================
+# =============================================================================
+# BUS TICKET SYSTEM - Flask API
+# Database Systems Course Project
+# =============================================================================
 # 
-# This is the main Flask application that provides REST API endpoints
-# for the Bus Ticket System frontend.
+# This file is the main backend of our bus ticket system.
+# I used Flask because its simple and we learned REST APIs in class.
 #
-# ARCHITECTURE OVERVIEW:
-# Frontend (HTML/JS) <--HTTP--> Flask API (this file) <--ODBC--> MSSQL Database
+# How it works:
+#   Frontend (HTML/JS) --> Flask API (here) --> MSSQL Database
 #
-# WHY FLASK?
-# - Simple and lightweight (good for a term project)
-# - Easy to understand routing (@app.route decorators)
-# - Good documentation and community support
-# - Works well with any database via Python libraries
-#
-# API DESIGN:
-# - RESTful endpoints (GET for retrieval, POST for actions)
-# - JSON responses with consistent format {success, message, data}
-# - Session-based authentication (stored server-side)
-# ============================================================================
+# I chose Flask because:
+#   - Easy to learn (good documentation)
+#   - @app.route decorator makes routing simple
+#   - Works good with any database
+# =============================================================================
 
 import os
 import sys
@@ -29,7 +23,6 @@ from functools import wraps
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 
-# Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database_manager import DatabaseManager
@@ -38,49 +31,46 @@ from utils import (
     validate_password, format_currency, format_duration
 )
 
-# ============================================================================
-# APP CONFIGURATION
-# ============================================================================
+# =============================================================================
+# APP SETUP
+# =============================================================================
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 
-# Secret key for session encryption - in production this would be an environment variable
+# Secret key for session - in real app this should be environment variable
 app.secret_key = 'bus_ticket_system_secret_key_2025'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 
-# Enable CORS for all routes (allows frontend to make API calls)
-# supports_credentials=True needed for session cookies
+# CORS lets frontend make API calls to backend
+# supports_credentials=True needed for session cookies to work
 CORS(app, supports_credentials=True)
 
-# Initialize database manager (Singleton - only one instance created)
+# Singleton pattern - only one database connection for whole app
+# This saves resources and prevents connection problems
 db = DatabaseManager()
 
 
-# ============================================================================
-# AUTHENTICATION DECORATORS
-# ============================================================================
-# These are "decorators" - a Python feature that wraps functions
-# We use them to check if user is logged in before accessing protected routes
+# =============================================================================
+# DECORATORS FOR AUTHENTICATION
+# =============================================================================
+# Decorators are like "wrappers" - they run before the actual function
+# We use them to check if user is logged in before accessing protected pages
 
 def login_required(f):
     """
-    Decorator to require login for routes.
-    If user is not logged in, returns 401 Unauthorized.
+    Check if user logged in before accessing route.
+    If not logged in, return 401 error.
     
-    Usage:
-        @app.route('/api/protected')
-        @login_required
-        def protected_route():
-            ...
+    Usage: Put @login_required above any route that needs login
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check if any type of user is in session
+        # Check session for user_id or admin_id
         if 'user_id' not in session and 'admin_id' not in session:
             return jsonify({
                 'success': False, 
-                'message': 'Lütfen önce giriş yapın'  # "Please login first"
+                'message': 'Please login first'
             }), 401
         return f(*args, **kwargs)
     return decorated_function
@@ -88,129 +78,88 @@ def login_required(f):
 
 def admin_required(f):
     """
-    Decorator to require admin (system or firm) login.
-    Returns 403 Forbidden if not an admin.
+    Only admins can access this route.
+    Returns 403 (Forbidden) if not admin.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'admin_id' not in session:
             return jsonify({
                 'success': False, 
-                'message': 'Admin yetkisi gerekli'  # "Admin access required"
+                'message': 'Admin access required'
             }), 403
         return f(*args, **kwargs)
     return decorated_function
 
 
-# ============================================================================
-# ERROR HANDLING HELPERS
-# ============================================================================
-
-def handle_db_error(operation_name):
-    """
-    Wrapper for database operations to provide consistent error handling.
-    Logs error and returns user-friendly message.
-    """
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            try:
-                return f(*args, **kwargs)
-            except Exception as e:
-                # Log the error for debugging
-                print(f"[ERROR] {operation_name} failed: {str(e)}")
-                # Return user-friendly error (don't expose technical details)
-                return jsonify({
-                    'success': False,
-                    'message': 'Bir hata oluştu. Lütfen tekrar deneyin.'  # "An error occurred. Please try again."
-                }), 500
-        return wrapper
-    return decorator
-
-
-# ============================================================================
-# STATIC FILE ROUTES (Serve HTML pages)
-# ============================================================================
+# =============================================================================
+# STATIC FILE ROUTES
+# =============================================================================
 
 @app.route('/')
 def index():
-    """Serve main page"""
+    """Serve the main page"""
     return send_from_directory(app.static_folder, 'index.html')
 
 
 @app.route('/<path:filename>')
 def serve_static(filename):
-    """Serve static files (HTML, CSS, JS, images)"""
+    """Serve static files like HTML, CSS, JS"""
     return send_from_directory(app.static_folder, filename)
 
 
-# ============================================================================
-# AUTH API ROUTES
-# ============================================================================
+# =============================================================================
+# AUTH API - Login, Register, Logout
+# =============================================================================
 
 @app.route('/api/register', methods=['POST'])
 def register():
     """
-    Register a new user.
+    Register new user.
     
-    Endpoint: POST /api/register
+    POST /api/register
+    Body: {first_name, last_name, email, phone, password, id_number}
     
-    Request JSON:
-        {
-            "first_name": "Ahmet",
-            "last_name": "Yılmaz",
-            "email": "ahmet@email.com",
-            "phone": "0555 123 45 67",
-            "password": "password123",
-            "id_number": "12345678901"
-        }
-    
-    Response JSON:
-        {
-            "success": true/false,
-            "message": "...",
-            "user_id": 123 (on success)
-        }
+    We validate everything before inserting to database.
+    This prevents bad data and SQL errors.
     """
     try:
         data = request.get_json()
         
-        # Null check - make sure we got JSON data
+        # Null check - important! If no JSON sent, data will be None
         if not data:
-            return jsonify({
-                'success': False, 
-                'message': 'Geçersiz istek'  # "Invalid request"
-            }), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
-        # Validate required fields
+        # Check all required fields exist and not empty
         required_fields = ['first_name', 'last_name', 'email', 'phone', 'password', 'id_number']
         for field in required_fields:
             if not data.get(field) or not str(data.get(field)).strip():
                 return jsonify({
                     'success': False, 
-                    'message': f'{field} alanı gerekli'  # "field is required"
+                    'message': f'{field} is required'
                 }), 400
         
-        # Validate email format
+        # Validate email format with regex
         is_valid, error_msg = validate_email(data['email'])
         if not is_valid:
             return jsonify({'success': False, 'message': error_msg}), 400
         
-        # Validate password strength
+        # Check password length
         is_valid, error_msg = validate_password(data['password'])
         if not is_valid:
             return jsonify({'success': False, 'message': error_msg}), 400
         
-        # Validate Turkish ID number format
+        # Turkish ID number validation (11 digits, cant start with 0)
         is_valid, error_msg = validate_id_number(data['id_number'])
         if not is_valid:
             return jsonify({'success': False, 'message': error_msg}), 400
         
-        # Register user in database
+        # All validation passed, now register user
+        # .strip() removes extra spaces, .lower() makes email lowercase
         success, message, user_id = db.register_user(
             first_name=data['first_name'].strip(),
             last_name=data['last_name'].strip(),
-            email=data['email'].strip().lower(),  # Normalize email to lowercase
+            email=data['email'].strip().lower(),
             phone=data['phone'].strip(),
             password=data['password'],
             id_number=data['id_number'].strip()
@@ -222,56 +171,48 @@ def register():
             return jsonify({'success': False, 'message': message}), 400
             
     except Exception as e:
+        # Log error for debugging but dont show technical details to user
         print(f"[ERROR] Registration failed: {e}")
-        return jsonify({
-            'success': False, 
-            'message': 'Kayıt işlemi başarısız'  # "Registration failed"
-        }), 500
+        return jsonify({'success': False, 'message': 'Registration failed'}), 500
 
 
 @app.route('/api/login', methods=['POST'])
 def login():
     """
-    Login user (handles both regular users, system admins, and firm admins).
+    Login user.
     
-    Endpoint: POST /api/login
+    POST /api/login
+    Body: {email, password}
     
-    The system checks:
-    1. First, tries to login as User/SystemAdmin (Users table)
-    2. If that fails, tries FirmAdmin (FirmAdmins table)
-    
-    This allows all user types to use the same login form.
+    The system checks Users table first, then FirmAdmins table.
+    This way all user types can use same login form.
     """
     try:
         data = request.get_json()
         
-        # Null check
         if not data:
-            return jsonify({
-                'success': False, 
-                'message': 'Geçersiz istek'
-            }), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         
-        # Basic validation
+        # Basic check - both email and password needed
         if not email or not password:
             return jsonify({
                 'success': False, 
-                'message': 'E-posta ve şifre gerekli'  # "Email and password required"
+                'message': 'Email and password required'
             }), 400
         
-        # STEP 1: Try to login as regular User or SystemAdmin
+        # Try regular User/SystemAdmin login first
         success, message, user_data = db.login_user(email, password)
         
         if success and user_data:
-            # Store user info in session
+            # Save user info in session (session is like temporary storage for logged in user)
             session['user_id'] = user_data['user_id']
             session['user_data'] = user_data
-            session.permanent = True  # Use the permanent session lifetime
+            session.permanent = True
             
-            # Check role and set appropriate session data
+            # Check if SystemAdmin
             if user_data.get('role') == 'SystemAdmin':
                 session['user_type'] = 'system_admin'
                 session['admin_id'] = user_data['user_id']
@@ -280,7 +221,7 @@ def login():
             
             return jsonify({'success': True, 'message': message, 'user': user_data})
         
-        # STEP 2: Try firm admin login as fallback
+        # If user login failed, try firm admin login
         success, message, admin_data = db.login_firm_admin(email, password)
         if success and admin_data:
             session['admin_id'] = admin_data['admin_id']
@@ -290,44 +231,34 @@ def login():
             session.permanent = True
             return jsonify({'success': True, 'message': message, 'user': admin_data})
         
-        # Both attempts failed
+        # Both failed
         return jsonify({
             'success': False, 
-            'message': 'Geçersiz e-posta veya şifre'  # "Invalid email or password"
+            'message': 'Invalid email or password'
         }), 401
         
     except Exception as e:
         print(f"[ERROR] Login failed: {e}")
-        return jsonify({
-            'success': False, 
-            'message': 'Giriş işlemi başarısız'  # "Login failed"
-        }), 500
+        return jsonify({'success': False, 'message': 'Login failed'}), 500
 
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
-    """
-    Logout current user by clearing session.
-    
-    Endpoint: POST /api/logout
-    """
+    """Clear session to logout user"""
     session.clear()
-    return jsonify({'success': True, 'message': 'Çıkış yapıldı'})  # "Logged out"
+    return jsonify({'success': True, 'message': 'Logged out'})
 
 
 @app.route('/api/session', methods=['GET'])
 def get_session():
     """
-    Get current session info.
-    
-    Endpoint: GET /api/session
-    
-    Used by frontend to check if user is still logged in
-    and get updated user data (like credit balance).
+    Check if user still logged in.
+    Frontend calls this to verify session is valid.
+    Also refreshes user data (like credit balance).
     """
     try:
         if 'user_id' in session:
-            # Refresh user data from database (in case balance changed)
+            # Get fresh data from database (balance might have changed)
             user = db.get_user_profile(session['user_id'])
             if user:
                 session['user_data'] = user
@@ -351,80 +282,70 @@ def get_session():
         return jsonify({'logged_in': False})
 
 
-# ============================================================================
-# CITY API ROUTES
-# ============================================================================
+# =============================================================================
+# CITY API
+# =============================================================================
 
 @app.route('/api/cities', methods=['GET'])
 def get_cities():
     """
-    Get all active cities for dropdown selection.
-    
-    Endpoint: GET /api/cities
-    
-    This is a public endpoint (no login required) because
-    we need to show cities on the home page search form.
+    Get all cities for dropdown menus.
+    Public endpoint - no login needed because search form is on home page.
     """
     try:
         cities = db.get_all_cities()
         return jsonify({'success': True, 'cities': cities})
     except Exception as e:
         print(f"[ERROR] Get cities failed: {e}")
-        return jsonify({'success': False, 'cities': [], 'message': 'Şehirler yüklenemedi'})
+        return jsonify({'success': False, 'cities': [], 'message': 'Could not load cities'})
 
 
-# ============================================================================
-# TRIP API ROUTES
-# ============================================================================
+# =============================================================================
+# TRIP API - Search and Details
+# =============================================================================
 
 @app.route('/api/trips/search', methods=['GET'])
 def search_trips():
     """
-    Search for available trips.
+    Search available trips.
     
-    Endpoint: GET /api/trips/search
+    GET /api/trips/search?from=1&to=2&date=2025-12-25
     
-    Query Parameters:
-        - from: Departure city ID (required)
-        - to: Arrival city ID (required)
-        - date: Travel date YYYY-MM-DD (required)
-        - sort_by: DepartureTime, Price, Duration (default: DepartureTime)
-        - sort_order: ASC, DESC (default: ASC)
-    
-    Example: /api/trips/search?from=1&to=2&date=2025-12-25
+    Uses stored procedure sp_SearchTrips for the query.
+    Stored procedure is better because complex query logic stays in database.
     """
     try:
-        # Get and validate parameters
+        # Get parameters from URL query string
         departure_city = request.args.get('from', type=int)
         arrival_city = request.args.get('to', type=int)
         travel_date_str = request.args.get('date')
         sort_by = request.args.get('sort_by', 'DepartureTime')
         sort_order = request.args.get('sort_order', 'ASC')
         
-        # Validate required parameters
+        # Check required parameters
         if not all([departure_city, arrival_city, travel_date_str]):
             return jsonify({
                 'success': False, 
-                'message': 'Eksik parametre'  # "Missing parameters"
+                'message': 'Missing parameters'
             }), 400
         
-        # Parse and validate date
+        # Parse date string to date object
         try:
             travel_date = datetime.strptime(travel_date_str, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({
                 'success': False, 
-                'message': 'Geçersiz tarih formatı. YYYY-MM-DD kullanın'  # "Invalid date format"
+                'message': 'Invalid date format. Use YYYY-MM-DD'
             }), 400
         
-        # Check date is not in past
+        # Dont allow past dates
         if travel_date < datetime.now().date():
             return jsonify({
                 'success': False,
-                'message': 'Geçmiş tarih seçilemez'  # "Cannot select past date"
+                'message': 'Cannot select past date'
             }), 400
         
-        # Search trips
+        # Call database
         trips = db.search_trips(departure_city, arrival_city, travel_date, sort_by, sort_order)
         
         # Format prices and duration for display
@@ -439,19 +360,13 @@ def search_trips():
         return jsonify({
             'success': False, 
             'trips': [],
-            'message': 'Sefer araması başarısız'  # "Trip search failed"
+            'message': 'Search failed'
         })
 
 
 @app.route('/api/trips/<int:trip_id>', methods=['GET'])
 def get_trip(trip_id):
-    """
-    Get single trip details.
-    
-    Endpoint: GET /api/trips/<trip_id>
-    
-    Used on seat selection page to show trip information.
-    """
+    """Get details for single trip - used on seat selection page"""
     try:
         trip = db.get_trip_details(trip_id)
         
@@ -460,28 +375,19 @@ def get_trip(trip_id):
             trip['DurationFormatted'] = format_duration(trip.get('DurationMinutes', 0))
             return jsonify({'success': True, 'trip': trip})
         
-        return jsonify({
-            'success': False, 
-            'message': 'Sefer bulunamadı'  # "Trip not found"
-        }), 404
+        return jsonify({'success': False, 'message': 'Trip not found'}), 404
         
     except Exception as e:
         print(f"[ERROR] Get trip failed: {e}")
-        return jsonify({
-            'success': False, 
-            'message': 'Sefer bilgisi alınamadı'  # "Could not get trip info"
-        }), 500
+        return jsonify({'success': False, 'message': 'Could not get trip info'}), 500
 
 
 @app.route('/api/trips/<int:trip_id>/seats', methods=['GET'])
 def get_trip_seats(trip_id):
     """
-    Get seat availability for a trip.
-    
-    Endpoint: GET /api/trips/<trip_id>/seats
-    
-    Returns list of all seats with their status (Available/Occupied).
-    This is used to render the seat selection grid.
+    Get seat status for trip.
+    Returns all seats with status (Available or Occupied).
+    Frontend uses this to draw the seat grid.
     """
     try:
         seats = db.get_trip_seat_status(trip_id)
@@ -491,90 +397,84 @@ def get_trip_seats(trip_id):
         return jsonify({
             'success': False, 
             'seats': [],
-            'message': 'Koltuk bilgisi alınamadı'  # "Could not get seat info"
+            'message': 'Could not get seat info'
         })
 
 
-# ============================================================================
-# TICKET API ROUTES
-# ============================================================================
+# =============================================================================
+# TICKET API - Purchase and Cancel
+# =============================================================================
 
 @app.route('/api/tickets/purchase', methods=['POST'])
 @login_required
 def purchase_ticket():
     """
-    Purchase ticket(s).
+    Purchase ticket - THIS IS THE MAIN TRANSACTION!
     
-    Endpoint: POST /api/tickets/purchase
+    POST /api/tickets/purchase
+    Body: {trip_id, seat_ids, passenger_names, coupon_code}
     
-    This is the MAIN TRANSACTION of the system!
+    Why stored procedure (sp_PurchaseTicket)?
+    Because buying ticket needs multiple steps:
+      1. Check seats available
+      2. Validate coupon
+      3. Calculate price with discount
+      4. Check user has enough money
+      5. Create ticket record
+      6. Create seat assignments
+      7. Update available seats
+      8. Deduct money from user
+      9. Record payment
     
-    Request JSON:
-        {
-            "trip_id": 1,
-            "seat_ids": [1, 2],              // List of seat IDs to book
-            "passenger_names": ["Ahmet Y", "Fatma Y"],  // One name per seat
-            "coupon_code": "DISCOUNT10"      // Optional discount coupon
-        }
-    
-    The stored procedure handles:
-    - Checking seat availability (prevents double-booking)
-    - Validating coupon
-    - Calculating price with discount
-    - Checking user has enough credit
-    - Creating ticket and seat records
-    - Deducting credit from user
-    - Recording payment
-    
-    All in a TRANSACTION (either all succeed or all fail).
+    If ANY step fails, ALL changes must rollback.
+    This is ACID - we learned this in class.
+    Transaction keeps database consistent.
     """
     try:
-        # Only regular users can purchase tickets
+        # Only users can buy tickets (not admins)
         if session.get('user_type') != 'user':
             return jsonify({
                 'success': False, 
-                'message': 'Sadece kullanıcılar bilet alabilir'  # "Only users can buy tickets"
+                'message': 'Only users can buy tickets'
             }), 403
         
         data = request.get_json()
         
-        # Null check
         if not data:
-            return jsonify({'success': False, 'message': 'Geçersiz istek'}), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
-        # Extract and validate parameters
         trip_id = data.get('trip_id')
         seat_ids = data.get('seat_ids', [])
         passenger_names = data.get('passenger_names', [])
         coupon_code = data.get('coupon_code')
         
-        # Basic validation
+        # Validation
         if not trip_id:
-            return jsonify({'success': False, 'message': 'Sefer seçilmedi'}), 400
+            return jsonify({'success': False, 'message': 'No trip selected'}), 400
         
         if not seat_ids or len(seat_ids) == 0:
-            return jsonify({'success': False, 'message': 'Koltuk seçilmedi'}), 400
+            return jsonify({'success': False, 'message': 'No seat selected'}), 400
         
         if not passenger_names or len(passenger_names) == 0:
-            return jsonify({'success': False, 'message': 'Yolcu adı gerekli'}), 400
+            return jsonify({'success': False, 'message': 'Passenger name required'}), 400
         
-        # Number of seats must match number of passengers
+        # Seat count must match passenger count
         if len(seat_ids) != len(passenger_names):
             return jsonify({
                 'success': False, 
-                'message': 'Koltuk ve yolcu sayısı eşleşmiyor'  # "Seat and passenger count don't match"
+                'message': 'Seat and passenger count dont match'
             }), 400
         
-        # Maximum 5 seats per booking (business rule)
+        # Business rule: max 5 seats per booking
         if len(seat_ids) > 5:
             return jsonify({
                 'success': False, 
-                'message': 'Tek seferde en fazla 5 koltuk alınabilir'  # "Max 5 seats per booking"
+                'message': 'Maximum 5 seats per booking'
             }), 400
         
         user_id = session['user_id']
         
-        # Call the stored procedure for purchase
+        # Call stored procedure
         success, message, ticket_id = db.purchase_ticket(
             user_id=user_id,
             trip_id=trip_id,
@@ -585,7 +485,7 @@ def purchase_ticket():
         )
         
         if success:
-            # Refresh user data in session (credit balance changed)
+            # Refresh user data (balance changed)
             user = db.get_user_profile(user_id)
             if user:
                 session['user_data'] = user
@@ -603,7 +503,7 @@ def purchase_ticket():
         print(f"[ERROR] Ticket purchase failed: {e}")
         return jsonify({
             'success': False, 
-            'message': 'Bilet satın alma başarısız'  # "Ticket purchase failed"
+            'message': 'Ticket purchase failed'
         }), 500
 
 
@@ -611,18 +511,14 @@ def purchase_ticket():
 @login_required
 def get_user_tickets():
     """
-    Get current user's tickets.
-    
-    Endpoint: GET /api/tickets
-    
-    Query Parameters:
-        - status: Filter by status (Active, Completed, Cancelled) - optional
+    Get users tickets.
+    Can filter by status: Active, Completed, Cancelled
     """
     try:
         if session.get('user_type') != 'user':
             return jsonify({
                 'success': False, 
-                'message': 'Sadece kullanıcılar biletlerini görebilir'
+                'message': 'Only users can view tickets'
             }), 403
         
         status_filter = request.args.get('status')
@@ -637,72 +533,62 @@ def get_user_tickets():
         return jsonify({
             'success': False, 
             'tickets': [],
-            'message': 'Biletler yüklenemedi'  # "Could not load tickets"
+            'message': 'Could not load tickets'
         })
 
 
 @app.route('/api/tickets/<int:ticket_id>', methods=['GET'])
 @login_required
 def get_ticket_details(ticket_id):
-    """
-    Get detailed information for a specific ticket.
-    
-    Endpoint: GET /api/tickets/<ticket_id>
-    """
+    """Get single ticket details"""
     try:
         user_id = session.get('user_id')
         
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         ticket = db.get_ticket_details(ticket_id, user_id)
         
         if ticket:
             return jsonify({'success': True, 'ticket': ticket})
         
-        return jsonify({
-            'success': False, 
-            'message': 'Bilet bulunamadı'  # "Ticket not found"
-        }), 404
+        return jsonify({'success': False, 'message': 'Ticket not found'}), 404
         
     except Exception as e:
         print(f"[ERROR] Get ticket details failed: {e}")
-        return jsonify({
-            'success': False, 
-            'message': 'Bilet bilgisi alınamadı'
-        }), 500
+        return jsonify({'success': False, 'message': 'Could not get ticket info'}), 500
 
 
 @app.route('/api/tickets/<int:ticket_id>/cancel', methods=['POST'])
 @login_required
 def cancel_ticket(ticket_id):
     """
-    Cancel a ticket and get refund.
+    Cancel ticket and get refund.
     
-    Endpoint: POST /api/tickets/<ticket_id>/cancel
+    Uses sp_CancelTicket stored procedure.
+    Similar to purchase - needs transaction because:
+      1. Verify ticket belongs to user
+      2. Calculate refund
+      3. Update ticket status
+      4. Release seats
+      5. Refund money to user
+      6. Record refund payment
     
-    Cancellation process:
-    1. Verify ticket belongs to user and is cancellable
-    2. Calculate refund amount
-    3. Update ticket status to 'Cancelled'
-    4. Release seats (update trip's AvailableSeats)
-    5. Refund credit to user account
-    6. Record refund payment
+    All steps must succeed or all fail (ACID).
     """
     try:
         if session.get('user_type') != 'user':
             return jsonify({
                 'success': False, 
-                'message': 'Sadece kullanıcılar bilet iptal edebilir'
+                'message': 'Only users can cancel tickets'
             }), 403
         
         user_id = session['user_id']
         
-        # Call stored procedure for cancellation
         success, message = db.cancel_ticket(ticket_id, user_id)
         
         if success:
-            # Refresh user data in session (credit balance changed)
+            # Refresh user data (balance changed after refund)
             user = db.get_user_profile(user_id)
             if user:
                 session['user_data'] = user
@@ -719,44 +605,38 @@ def cancel_ticket(ticket_id):
         print(f"[ERROR] Ticket cancellation failed: {e}")
         return jsonify({
             'success': False, 
-            'message': 'İptal işlemi başarısız'  # "Cancellation failed"
+            'message': 'Cancellation failed'
         }), 500
 
 
-# ============================================================================
-# COUPON API ROUTES
-# ============================================================================
+# =============================================================================
+# COUPON API
+# =============================================================================
 
 @app.route('/api/coupons/validate', methods=['POST'])
 @login_required
 def validate_coupon():
     """
-    Validate a coupon code before purchase.
-    
-    Endpoint: POST /api/coupons/validate
-    
-    Request JSON:
-        {"coupon_code": "DISCOUNT10"}
-    
-    Response includes discount_rate if valid.
+    Check if coupon is valid before purchase.
+    Returns discount rate if valid.
     """
     try:
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'message': 'Geçersiz istek'}), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
         coupon_code = data.get('coupon_code', '').strip().upper()
         
         if not coupon_code:
             return jsonify({
                 'success': False, 
-                'message': 'Kupon kodu gerekli'  # "Coupon code required"
+                'message': 'Coupon code required'
             }), 400
         
         user_id = session.get('user_id')
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         is_valid, discount_rate, message = db.validate_coupon(coupon_code, user_id)
         
@@ -773,22 +653,18 @@ def validate_coupon():
             'success': False,
             'valid': False,
             'discount_rate': 0,
-            'message': 'Kupon doğrulama başarısız'
+            'message': 'Coupon validation failed'
         })
 
 
 @app.route('/api/coupons', methods=['GET'])
 @login_required
 def get_user_coupons():
-    """
-    Get current user's available coupons.
-    
-    Endpoint: GET /api/coupons
-    """
+    """Get users available coupons"""
     try:
         user_id = session.get('user_id')
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         coupons = db.get_user_coupons(user_id)
         return jsonify({'success': True, 'coupons': coupons})
@@ -798,9 +674,9 @@ def get_user_coupons():
         return jsonify({'success': False, 'coupons': []})
 
 
-# ============================================================================
-# CREDIT API ROUTES
-# ============================================================================
+# =============================================================================
+# CREDIT API - Add money to account
+# =============================================================================
 
 @app.route('/api/credit/add', methods=['POST'])
 @login_required
@@ -808,67 +684,63 @@ def add_credit():
     """
     Add credit to user account.
     
-    Endpoint: POST /api/credit/add
+    POST /api/credit/add
+    Body: {amount, payment_method}
     
-    Request JSON:
-        {
-            "amount": 100,
-            "payment_method": "CreditCard"  // or "BankTransfer"
-        }
-    
-    Note: In a real application, this would integrate with a payment gateway.
-    For this project, we simulate successful payment.
+    In real app this would connect to payment gateway.
+    For demo we just simulate successful payment.
     """
     try:
         if session.get('user_type') != 'user':
             return jsonify({
                 'success': False, 
-                'message': 'Sadece kullanıcılar bakiye yükleyebilir'
+                'message': 'Only users can add credit'
             }), 403
         
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'message': 'Geçersiz istek'}), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
         amount = data.get('amount', 0)
         payment_method = data.get('payment_method', 'CreditCard')
         
-        # Validate amount
+        # Validate amount is number
         try:
             amount = float(amount)
         except (ValueError, TypeError):
             return jsonify({
                 'success': False, 
-                'message': 'Geçersiz miktar'  # "Invalid amount"
+                'message': 'Invalid amount'
             }), 400
         
+        # Amount must be positive
         if amount <= 0:
             return jsonify({
                 'success': False, 
-                'message': 'Miktar pozitif olmalı'  # "Amount must be positive"
+                'message': 'Amount must be positive'
             }), 400
         
-        if amount > 10000:
+        # Max limit for security
+        if amount > 50000:
             return jsonify({
                 'success': False, 
-                'message': 'Maksimum 10.000 TL yüklenebilir'  # "Max 10,000 TL"
+                'message': 'Maximum 50,000 TL allowed'
             }), 400
         
         # Validate payment method
         if payment_method not in ['CreditCard', 'BankTransfer']:
             return jsonify({
                 'success': False, 
-                'message': 'Geçersiz ödeme yöntemi'  # "Invalid payment method"
+                'message': 'Invalid payment method'
             }), 400
         
         user_id = session['user_id']
         
-        # Add credit via stored procedure
         success, message = db.add_user_credit(user_id, amount, payment_method)
         
         if success:
-            # Refresh user data in session
+            # Refresh user data
             user = db.get_user_profile(user_id)
             if user:
                 session['user_data'] = user
@@ -885,22 +757,18 @@ def add_credit():
         print(f"[ERROR] Add credit failed: {e}")
         return jsonify({
             'success': False, 
-            'message': 'Bakiye yükleme başarısız'  # "Credit top-up failed"
+            'message': 'Credit top-up failed'
         }), 500
 
 
 @app.route('/api/credit/balance', methods=['GET'])
 @login_required
 def get_credit_balance():
-    """
-    Get current user's credit balance.
-    
-    Endpoint: GET /api/credit/balance
-    """
+    """Get current credit balance"""
     try:
         user_id = session.get('user_id')
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         balance = db.get_user_credit(user_id)
         return jsonify({
@@ -917,15 +785,11 @@ def get_credit_balance():
 @app.route('/api/payments', methods=['GET'])
 @login_required
 def get_payment_history():
-    """
-    Get user's payment history.
-    
-    Endpoint: GET /api/payments
-    """
+    """Get users payment history"""
     try:
         user_id = session.get('user_id')
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         payments = db.get_payment_history(user_id)
         return jsonify({'success': True, 'payments': payments})
@@ -935,35 +799,28 @@ def get_payment_history():
         return jsonify({'success': False, 'payments': []})
 
 
-# ============================================================================
-# USER PROFILE API ROUTES
-# ============================================================================
+# =============================================================================
+# USER PROFILE API
+# =============================================================================
 
 @app.route('/api/profile', methods=['GET'])
 @login_required
 def get_profile():
-    """
-    Get current user's profile.
-    
-    Endpoint: GET /api/profile
-    """
+    """Get user profile"""
     try:
         user_id = session.get('user_id')
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         profile = db.get_user_profile(user_id)
         if profile:
             return jsonify({'success': True, 'profile': profile})
         
-        return jsonify({
-            'success': False, 
-            'message': 'Profil bulunamadı'  # "Profile not found"
-        }), 404
+        return jsonify({'success': False, 'message': 'Profile not found'}), 404
         
     except Exception as e:
         print(f"[ERROR] Get profile failed: {e}")
-        return jsonify({'success': False, 'message': 'Profil yüklenemedi'}), 500
+        return jsonify({'success': False, 'message': 'Could not load profile'}), 500
 
 
 @app.route('/api/profile', methods=['PUT'])
@@ -971,31 +828,22 @@ def get_profile():
 def update_profile():
     """
     Update user profile.
-    
-    Endpoint: PUT /api/profile
-    
-    Request JSON (all optional):
-        {
-            "first_name": "Ahmet",
-            "last_name": "Yılmaz",
-            "phone": "0555 123 45 67",
-            "address": "Istanbul, Turkey"
-        }
+    Only updates fields that are sent in request.
     """
     try:
         user_id = session.get('user_id')
         if not user_id:
-            return jsonify({'success': False, 'message': 'Kullanıcı bulunamadı'}), 403
+            return jsonify({'success': False, 'message': 'User not found'}), 403
         
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'message': 'Geçersiz istek'}), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
         success, message = db.update_user_profile(user_id, **data)
         
         if success:
-            # Refresh session with updated data
+            # Refresh session data
             user = db.get_user_profile(user_id)
             if user:
                 session['user_data'] = user
@@ -1008,26 +856,23 @@ def update_profile():
         print(f"[ERROR] Update profile failed: {e}")
         return jsonify({
             'success': False, 
-            'message': 'Profil güncellenemedi'  # "Could not update profile"
+            'message': 'Could not update profile'
         }), 500
 
 
-# ============================================================================
-# ADMIN API ROUTES
-# ============================================================================
+# =============================================================================
+# ADMIN API
+# =============================================================================
 
 @app.route('/api/admin/dashboard', methods=['GET'])
 @admin_required
 def admin_dashboard():
     """
-    Get dashboard statistics for admin panel.
-    
-    Endpoint: GET /api/admin/dashboard
-    
-    Returns key metrics: total users, trips, tickets, revenue
+    Get dashboard statistics.
+    Shows total users, trips, tickets, revenue etc.
     """
     try:
-        # For firm admins, only show their company's stats
+        # Firm admin only sees their company stats
         company_id = session.get('company_id') if session.get('user_type') == 'firm_admin' else None
         stats = db.get_dashboard_stats(company_id)
         return jsonify({'success': True, 'stats': stats})
@@ -1040,16 +885,12 @@ def admin_dashboard():
 @app.route('/api/admin/companies', methods=['GET'])
 @admin_required
 def get_companies():
-    """
-    Get all companies (System Admin only).
-    
-    Endpoint: GET /api/admin/companies
-    """
+    """Get all companies - System Admin only"""
     try:
         if session.get('user_type') != 'system_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Sistem admin yetkisi gerekli'
+                'message': 'System admin access required'
             }), 403
         
         companies = db.get_all_companies()
@@ -1063,16 +904,12 @@ def get_companies():
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def get_all_users():
-    """
-    Get all users (System Admin only).
-    
-    Endpoint: GET /api/admin/users
-    """
+    """Get all users - System Admin only"""
     try:
         if session.get('user_type') != 'system_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Sistem admin yetkisi gerekli'
+                'message': 'System admin access required'
             }), 403
         
         users = db.get_all_users()
@@ -1086,16 +923,12 @@ def get_all_users():
 @app.route('/api/admin/coupons', methods=['GET'])
 @admin_required
 def get_all_coupons():
-    """
-    Get all coupons (System Admin only).
-    
-    Endpoint: GET /api/admin/coupons
-    """
+    """Get all coupons - System Admin only"""
     try:
         if session.get('user_type') != 'system_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Sistem admin yetkisi gerekli'
+                'message': 'System admin access required'
             }), 403
         
         coupons = db.get_all_coupons()
@@ -1109,48 +942,35 @@ def get_all_coupons():
 @app.route('/api/admin/coupons', methods=['POST'])
 @admin_required
 def create_coupon():
-    """
-    Create a new coupon (System Admin only).
-    
-    Endpoint: POST /api/admin/coupons
-    
-    Request JSON:
-        {
-            "coupon_code": "NEWCODE",
-            "discount_rate": 15,
-            "usage_limit": 100,
-            "expiry_date": "2025-12-31",
-            "description": "New coupon description"
-        }
-    """
+    """Create new coupon - System Admin only"""
     try:
         if session.get('user_type') != 'system_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Sistem admin yetkisi gerekli'
+                'message': 'System admin access required'
             }), 403
         
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'message': 'Geçersiz istek'}), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
-        # Validate required fields
+        # Check required fields
         required = ['coupon_code', 'discount_rate', 'usage_limit', 'expiry_date']
         for field in required:
             if not data.get(field):
                 return jsonify({
                     'success': False, 
-                    'message': f'{field} alanı gerekli'
+                    'message': f'{field} is required'
                 }), 400
         
-        # Parse expiry date
+        # Parse date
         try:
             expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d').date()
         except ValueError:
             return jsonify({
                 'success': False, 
-                'message': 'Geçersiz tarih formatı'
+                'message': 'Invalid date format'
             }), 400
         
         success, message = db.create_coupon(
@@ -1170,30 +990,23 @@ def create_coupon():
         print(f"[ERROR] Create coupon failed: {e}")
         return jsonify({
             'success': False, 
-            'message': 'Kupon oluşturulamadı'  # "Could not create coupon"
+            'message': 'Could not create coupon'
         }), 500
 
 
-# ============================================================================
-# FIRM ADMIN API ROUTES
-# ============================================================================
+# =============================================================================
+# FIRM ADMIN API
+# =============================================================================
 
 @app.route('/api/firm/trips', methods=['GET'])
 @admin_required
 def get_firm_trips():
-    """
-    Get company's trips (Firm Admin only).
-    
-    Endpoint: GET /api/firm/trips
-    
-    Query Parameters:
-        - status: Filter by status (Active, Completed, Cancelled) - optional
-    """
+    """Get companys trips - Firm Admin only"""
     try:
         if session.get('user_type') != 'firm_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Firma admin yetkisi gerekli'
+                'message': 'Firm admin access required'
             }), 403
         
         company_id = session['company_id']
@@ -1210,46 +1023,30 @@ def get_firm_trips():
 @app.route('/api/firm/trips', methods=['POST'])
 @admin_required
 def create_firm_trip():
-    """
-    Create a new trip (Firm Admin only).
-    
-    Endpoint: POST /api/firm/trips
-    
-    Request JSON:
-        {
-            "bus_id": 1,
-            "departure_city_id": 1,
-            "arrival_city_id": 2,
-            "departure_date": "2025-10-15",
-            "departure_time": "09:00",
-            "arrival_time": "14:30",
-            "duration_minutes": 330,
-            "price": 350
-        }
-    """
+    """Create new trip - Firm Admin only"""
     try:
         if session.get('user_type') != 'firm_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Firma admin yetkisi gerekli'
+                'message': 'Firm admin access required'
             }), 403
         
         data = request.get_json()
         
         if not data:
-            return jsonify({'success': False, 'message': 'Geçersiz istek'}), 400
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
         
-        # Validate required fields
+        # Check required fields
         required = ['bus_id', 'departure_city_id', 'arrival_city_id', 'departure_date',
                     'departure_time', 'arrival_time', 'duration_minutes', 'price']
         for field in required:
             if field not in data:
                 return jsonify({
                     'success': False, 
-                    'message': f'{field} alanı gerekli'
+                    'message': f'{field} is required'
                 }), 400
         
-        # Parse date/time values
+        # Parse date and time
         try:
             departure_date = datetime.strptime(data['departure_date'], '%Y-%m-%d').date()
             departure_time = datetime.strptime(data['departure_time'], '%H:%M').time()
@@ -1257,7 +1054,7 @@ def create_firm_trip():
         except ValueError:
             return jsonify({
                 'success': False, 
-                'message': 'Geçersiz tarih/saat formatı'
+                'message': 'Invalid date/time format'
             }), 400
         
         admin_id = session['admin_id']
@@ -1283,23 +1080,19 @@ def create_firm_trip():
         print(f"[ERROR] Create trip failed: {e}")
         return jsonify({
             'success': False, 
-            'message': 'Sefer oluşturulamadı'  # "Could not create trip"
+            'message': 'Could not create trip'
         }), 500
 
 
 @app.route('/api/firm/buses', methods=['GET'])
 @admin_required
 def get_firm_buses():
-    """
-    Get company's buses (Firm Admin only).
-    
-    Endpoint: GET /api/firm/buses
-    """
+    """Get companys buses - Firm Admin only"""
     try:
         if session.get('user_type') != 'firm_admin':
             return jsonify({
                 'success': False, 
-                'message': 'Firma admin yetkisi gerekli'
+                'message': 'Firm admin access required'
             }), 403
         
         company_id = session['company_id']
@@ -1311,55 +1104,45 @@ def get_firm_buses():
         return jsonify({'success': False, 'buses': []})
 
 
-# ============================================================================
+# =============================================================================
 # ERROR HANDLERS
-# ============================================================================
+# =============================================================================
+# These catch errors that arent handled by try-catch blocks
+# Important for demo - prevents ugly error pages
 
 @app.errorhandler(404)
 def not_found(error):
-    """Handle 404 errors"""
-    return jsonify({
-        'success': False, 
-        'message': 'Sayfa bulunamadı'  # "Page not found"
-    }), 404
+    return jsonify({'success': False, 'message': 'Page not found'}), 404
 
 
 @app.errorhandler(500)
 def server_error(error):
-    """Handle 500 errors"""
-    return jsonify({
-        'success': False, 
-        'message': 'Sunucu hatası'  # "Server error"
-    }), 500
+    return jsonify({'success': False, 'message': 'Server error'}), 500
 
 
 @app.errorhandler(405)
 def method_not_allowed(error):
-    """Handle 405 errors (wrong HTTP method)"""
-    return jsonify({
-        'success': False, 
-        'message': 'Bu işlem desteklenmiyor'  # "Method not allowed"
-    }), 405
+    return jsonify({'success': False, 'message': 'Method not allowed'}), 405
 
 
-# ============================================================================
-# MAIN
-# ============================================================================
+# =============================================================================
+# MAIN - Start the server
+# =============================================================================
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("🚌 BUS TICKET SYSTEM - Flask API Server")
+    print("BUS TICKET SYSTEM - Flask API Server")
     print("=" * 60)
     print()
     
-    # Test database connection before starting
+    # Test database before starting
     print("Testing database connection...")
     if db.test_connection():
-        print("✓ Database connection successful!")
+        print("Database connection OK!")
         print()
         print("Starting server...")
         print("=" * 60)
-        print("Open http://localhost:5000 in your browser")
+        print("Open http://localhost:5000 in browser")
         print("=" * 60)
         print()
         print("Test Accounts:")
@@ -1367,15 +1150,13 @@ if __name__ == '__main__':
         print("  Admin: admin@busticket.com / password123")
         print("=" * 60)
         
-        # Run Flask development server
-        # debug=True enables auto-reload on code changes
-        # host='0.0.0.0' allows access from other devices on network
+        # debug=True auto-reloads when code changes (useful for development)
         app.run(debug=True, host='0.0.0.0', port=5000)
     else:
-        print("✗ Database connection failed!")
+        print("Database connection FAILED!")
         print()
-        print("Please make sure:")
+        print("Check:")
         print("1. SQL Server is running")
-        print("2. The database exists (run BusTicketSystem_CreateDB.sql)")
-        print("3. Check config.py for correct connection settings")
+        print("2. Database exists (run BusTicketSystem_CreateDB.sql)")
+        print("3. Connection settings in config.py")
         print()

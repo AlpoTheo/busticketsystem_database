@@ -1,14 +1,12 @@
-# ============================================================================
+# =============================================================================
 # BUS TICKET SYSTEM - Utility Functions
-# CENG 301 Database Systems Term Project
-# ============================================================================
-# Common utility functions used throughout the application.
-#
-# WHY A SEPARATE UTILS FILE?
-# Following the DRY (Don't Repeat Yourself) principle - these functions
-# are used in multiple places (login, registration, etc.), so we put them
-# in one place to avoid code duplication.
-# ============================================================================
+# Database Systems Course Project
+# =============================================================================
+# 
+# Helper functions used in different parts of the app.
+# I put them here because DRY principle - Dont Repeat Yourself.
+# Instead of writing same code in many places, write once and import.
+# =============================================================================
 
 import hashlib
 import re
@@ -16,24 +14,26 @@ import re
 
 def hash_password(password):
     """
-    Hash a password using SHA256.
+    Hash password using SHA256.
     
-    WHY HASHING?
-    We NEVER store passwords as plain text! If the database is compromised,
-    attackers would get all user passwords. With hashing:
-    - password123 -> ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+    WHY HASH PASSWORDS?
+    We NEVER store passwords as plain text!
     
-    SHA256 is a one-way function - you can't reverse it to get the original.
-    To verify login, we hash the entered password and compare hashes.
+    If someone hacks the database and sees:
+      Plain: password123
+    They can use it immediately.
     
-    NOTE: In production, use bcrypt or argon2 with salts. SHA256 is used here
-    for simplicity and compatibility with the sample data in the SQL script.
+    But if they see:
+      Hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+    They cant reverse it to get original password.
     
-    Args:
-        password: Plain text password
-        
-    Returns:
-        64-character hex string (SHA256 hash)
+    SHA256 is one-way function - you can hash but cant un-hash.
+    
+    To check login: hash the entered password and compare hashes.
+    If hashes match, password is correct.
+    
+    Note: In real production apps use bcrypt or argon2 with salt.
+    SHA256 is simpler and works for this project.
     """
     if not password:
         return ""
@@ -42,16 +42,8 @@ def hash_password(password):
 
 def verify_password(stored_hash, provided_password):
     """
-    Verify a password against a stored hash.
-    
-    This is used during login to check if the entered password matches.
-    
-    Args:
-        stored_hash: The hash stored in database
-        provided_password: The password user entered
-        
-    Returns:
-        True if passwords match, False otherwise
+    Check if password matches stored hash.
+    Used during login.
     """
     if not stored_hash or not provided_password:
         return False
@@ -60,58 +52,61 @@ def verify_password(stored_hash, provided_password):
 
 def validate_email(email):
     """
-    Validate email format using regex.
+    Check email format using regex (regular expression).
     
-    WHY VALIDATE?
-    - Prevent invalid data in database
-    - Better user experience (catch typos early)
-    - Security (reduce injection attack surface)
+    Why validate?
+    - Prevent bad data in database
+    - Give quick feedback to user
+    - Reduce errors
     
-    Valid: user@example.com, user.name@domain.co.uk
-    Invalid: user@, @domain.com, user@.com
+    Good: user@example.com, user.name@domain.co.uk
+    Bad: user@, @domain.com, no-at-sign
     
-    Returns:
-        (is_valid: bool, error_message: str)
+    Returns: (is_valid, error_message)
     """
     if not email:
-        return False, "E-posta adresi gerekli"  # "Email is required"
+        return False, "Email is required"
     
-    # Standard email regex pattern
-    # Matches: local-part@domain.tld
+    # Regex pattern for email
+    # ^ = start, $ = end
+    # [a-zA-Z0-9._%+-]+ = letters, numbers, dots etc (one or more)
+    # @ = the @ symbol
+    # [a-zA-Z0-9.-]+ = domain name
+    # \. = literal dot
+    # [a-zA-Z]{2,} = at least 2 letters for TLD (com, org, etc)
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     
     if re.match(pattern, email.strip()):
         return True, ""
     
-    return False, "Geçersiz e-posta formatı"  # "Invalid email format"
+    return False, "Invalid email format"
 
 
 def validate_phone(phone):
     """
-    Validate Turkish phone number format.
+    Validate Turkish phone number.
     
     Accepted formats:
     - 05XX XXX XX XX
-    - 5XX XXX XX XX
+    - 5XX XXX XX XX  
     - +905XXXXXXXXX
     
-    Returns:
-        (is_valid: bool, error_message: str)
+    Returns: (is_valid, error_message)
     """
     if not phone:
-        return False, "Telefon numarası gerekli"  # "Phone number required"
+        return False, "Phone number required"
     
-    # Remove spaces, dashes, parentheses for validation
+    # Remove spaces and dashes for checking
     cleaned = re.sub(r'[\s\-()]', '', phone)
     
-    # Turkish mobile number patterns
-    # Can start with 0, or without 0, or with +90
+    # Turkish mobile starts with 05 or 5 or +905
+    # Then 9 more digits
     pattern = r'^(0?5\d{9}|\+905\d{9})$'
     
     if re.match(pattern, cleaned):
         return True, ""
     
-    return False, "Geçersiz telefon numarası"  # "Invalid phone number"
+    return False, "Invalid phone number"
 
 
 def validate_id_number(id_number):
@@ -119,77 +114,64 @@ def validate_id_number(id_number):
     Validate Turkish ID number (TC Kimlik No).
     
     Rules:
-    - Exactly 11 digits
+    - Must be exactly 11 digits
     - Cannot start with 0
-    - Algorithm check (optional, not implemented for simplicity)
     
-    Real TC numbers have a checksum algorithm, but we skip that
-    for this project to allow test data.
+    Real TC numbers have checksum algorithm but we skip that
+    to allow test data.
     
-    Returns:
-        (is_valid: bool, error_message: str)
+    Returns: (is_valid, error_message)
     """
     if not id_number:
-        return False, "TC kimlik numarası gerekli"  # "ID number required"
+        return False, "ID number required"
     
-    # Remove any whitespace
     id_number = id_number.strip()
     
-    # Must be exactly 11 digits
+    # Check 11 digits
     if not id_number.isdigit() or len(id_number) != 11:
-        return False, "TC kimlik numarası 11 haneli olmalı"  # "ID must be 11 digits"
+        return False, "ID number must be 11 digits"
     
     # Cannot start with 0
     if id_number[0] == '0':
-        return False, "TC kimlik numarası 0 ile başlayamaz"  # "ID cannot start with 0"
+        return False, "ID number cannot start with 0"
     
     return True, ""
 
 
 def validate_password(password):
     """
-    Validate password requirements.
+    Check password requirements.
     
-    Requirements (kept simple for demo):
-    - At least 6 characters
+    For this project: minimum 6 characters.
     
-    In production, you'd want:
-    - Minimum 8 characters
-    - At least one uppercase, lowercase, number
-    - No common passwords
+    In real app you would want:
+    - Min 8 characters
+    - At least 1 uppercase, 1 lowercase, 1 number
+    - Not a common password like "123456"
     
-    Returns:
-        (is_valid: bool, error_message: str)
+    Returns: (is_valid, error_message)
     """
     if not password:
-        return False, "Şifre gerekli"  # "Password required"
+        return False, "Password required"
     
     if len(password) < 6:
-        return False, "Şifre en az 6 karakter olmalı"  # "Password must be at least 6 characters"
+        return False, "Password must be at least 6 characters"
     
     return True, ""
 
 
 def format_currency(amount):
     """
-    Format amount as Turkish Lira for display.
+    Format number as Turkish Lira.
     
     Examples:
-        1250 -> "1.250 TL"
-        350.50 -> "351 TL" (rounded)
+      1250 -> "1.250 TL"
+      350.50 -> "351 TL"
     
-    Uses dot as thousands separator (Turkish convention).
-    
-    Args:
-        amount: Numeric amount
-        
-    Returns:
-        Formatted string
+    Uses dot as thousands separator (Turkish style).
     """
     try:
-        # Round to nearest integer for display
         value = int(round(float(amount)))
-        # Format with dots as thousands separator
         formatted = f"{value:,}".replace(",", ".")
         return f"{formatted} TL"
     except (TypeError, ValueError):
@@ -198,18 +180,12 @@ def format_currency(amount):
 
 def format_duration(minutes):
     """
-    Format duration in minutes to human readable format.
+    Format minutes to readable text.
     
     Examples:
-        330 -> "5 saat 30 dk"
-        60 -> "1 saat"
-        45 -> "45 dk"
-    
-    Args:
-        minutes: Duration in minutes
-        
-    Returns:
-        Formatted string
+      330 -> "5h 30m"
+      60 -> "1h"
+      45 -> "45m"
     """
     if not minutes:
         return "-"
@@ -220,40 +196,33 @@ def format_duration(minutes):
         mins = minutes % 60
         
         if hours > 0 and mins > 0:
-            return f"{hours} saat {mins} dk"  # "X hours Y min"
+            return f"{hours}h {mins}m"
         elif hours > 0:
-            return f"{hours} saat"  # "X hours"
+            return f"{hours}h"
         else:
-            return f"{mins} dk"  # "X min"
+            return f"{mins}m"
     except (TypeError, ValueError):
         return "-"
 
 
 def format_date(date_obj):
     """
-    Format date object to Turkish locale string.
+    Format date to readable string.
     
-    Example: 2025-12-25 -> "25 Aralık 2025"
-    
-    Args:
-        date_obj: Date or datetime object
-        
-    Returns:
-        Formatted string
+    Example: 2025-12-25 -> "25 December 2025"
     """
     if not date_obj:
         return "-"
     
-    # Turkish month names
-    months_turkish = {
-        1: 'Ocak', 2: 'Şubat', 3: 'Mart', 4: 'Nisan',
-        5: 'Mayıs', 6: 'Haziran', 7: 'Temmuz', 8: 'Ağustos',
-        9: 'Eylül', 10: 'Ekim', 11: 'Kasım', 12: 'Aralık'
+    months = {
+        1: 'January', 2: 'February', 3: 'March', 4: 'April',
+        5: 'May', 6: 'June', 7: 'July', 8: 'August',
+        9: 'September', 10: 'October', 11: 'November', 12: 'December'
     }
     
     try:
         if hasattr(date_obj, 'day'):
-            month_name = months_turkish.get(date_obj.month, str(date_obj.month))
+            month_name = months.get(date_obj.month, str(date_obj.month))
             return f"{date_obj.day} {month_name} {date_obj.year}"
         return str(date_obj)
     except Exception:
@@ -262,15 +231,9 @@ def format_date(date_obj):
 
 def format_time(time_obj):
     """
-    Format time object to HH:MM string.
+    Format time to HH:MM string.
     
     Example: 09:30:00 -> "09:30"
-    
-    Args:
-        time_obj: Time or datetime object
-        
-    Returns:
-        Formatted string (HH:MM)
     """
     if not time_obj:
         return "-"
@@ -278,7 +241,6 @@ def format_time(time_obj):
     try:
         if hasattr(time_obj, 'strftime'):
             return time_obj.strftime("%H:%M")
-        # If it's a string, just take first 5 characters (HH:MM)
         return str(time_obj)[:5]
     except Exception:
         return str(time_obj)
@@ -286,39 +248,32 @@ def format_time(time_obj):
 
 def sanitize_input(text):
     """
-    Basic input sanitization.
+    Basic input cleaning.
     
-    NOTE: This is NOT sufficient for SQL injection prevention!
+    IMPORTANT: This is NOT enough for SQL injection protection!
     We use parameterized queries (? placeholders) in database_manager.py
-    which is the proper way to prevent SQL injection.
+    That is the proper way to prevent SQL injection.
     
-    This function is just an extra layer for removing obviously dangerous patterns.
-    
-    Args:
-        text: Input text
-        
-    Returns:
-        Sanitized text
+    This function just removes some obvious bad patterns as extra safety.
     """
     if not text:
         return ""
     
-    # Convert to string
     result = str(text)
     
-    # Remove some dangerous patterns
-    # Note: parameterized queries already protect against SQL injection
-    dangerous_patterns = [
+    # Remove dangerous SQL patterns
+    # Note: parameterized queries already protect us
+    dangerous = [
         "'--",      # SQL comment
-        "'; --",    # SQL injection attempt
-        "/*",       # SQL block comment start
-        "*/",       # SQL block comment end
-        "xp_",      # SQL Server extended stored procedures
-        "EXEC(",    # Execute command
-        "DROP ",    # Drop table/database
+        "'; --",    # injection attempt  
+        "/*",       # block comment
+        "*/",
+        "xp_",      # SQL Server commands
+        "EXEC(",
+        "DROP ",
     ]
     
-    for pattern in dangerous_patterns:
+    for pattern in dangerous:
         result = result.replace(pattern, "")
     
     return result.strip()
@@ -326,19 +281,11 @@ def sanitize_input(text):
 
 def truncate_string(text, max_length, suffix="..."):
     """
-    Truncate a string to maximum length.
+    Cut string if too long.
     
     Useful for displaying long text in UI.
     
     Example: truncate_string("Hello World", 8) -> "Hello..."
-    
-    Args:
-        text: Input text
-        max_length: Maximum length including suffix
-        suffix: String to append when truncated
-        
-    Returns:
-        Truncated string
     """
     if not text:
         return ""

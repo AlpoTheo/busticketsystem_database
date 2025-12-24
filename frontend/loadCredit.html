@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bakiye Yükle - BusTicket</title>
+    <title>Top Up Credit - BusTicket</title>
     <style>
         * {
             margin: 0;
@@ -30,7 +30,7 @@
             color: var(--text-dark);
         }
 
-        /* Header - sitenin geri kalanıyla aynı */
+        /* Header - matches the rest of the site */
         header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
@@ -532,11 +532,11 @@
 
     <!-- Main Content -->
     <main class="main-container">
-        <a href="MyTickets.html" class="back-link">← Hesabıma Dön</a>
+        <a href="MyTickets.html" class="back-link">← Back to My Account</a>
 
         <div class="page-title">
-            <h1>💳 Bakiye Yükle</h1>
-            <p>Hesabınıza kolayca bakiye yükleyin ve bilet alın</p>
+            <h1>💳 Top Up Credit</h1>
+            <p>Easily add credit to your account and buy tickets</p>
         </div>
 
         <!-- Content will be loaded by JS based on login status -->
@@ -549,11 +549,11 @@
     <div class="modal-overlay" id="successModal">
         <div class="modal-content">
             <div class="success-icon">✓</div>
-            <h2>Bakiye Yüklendi!</h2>
-            <p>Hesabınıza başarıyla bakiye eklendi</p>
+            <h2>Credit Added!</h2>
+            <p>Credit has been successfully added to your account</p>
             <div class="new-balance" id="newBalanceDisplay">₺0</div>
-            <p style="font-size: 0.9rem;">Yeni bakiyeniz</p>
-            <button class="modal-btn" onclick="closeModal()">Tamam</button>
+            <p style="font-size: 0.9rem;">Your new balance</p>
+            <button class="modal-btn" onclick="closeModal()">OK</button>
         </div>
     </div>
 
@@ -595,10 +595,10 @@
             
             userSection.innerHTML = `
                 <div class="user-avatar">${initial}</div>
-                <span class="user-name">${userData.first_name || 'Kullanıcı'}</span>
+                <span class="user-name">${userData.first_name || 'User'}</span>
                 <div class="credit-badge">
                     <span>💰</span>
-                    <span id="headerBalance">₺${currentBalance.toLocaleString('tr-TR')}</span>
+                    <span id="headerBalance">₺${currentBalance.toLocaleString('en-US')}</span>
                 </div>
             `;
         }
@@ -607,13 +607,13 @@
         function showLoginPrompt() {
             document.getElementById('mainContent').innerHTML = `
                 <div class="login-prompt">
-                    <h2>⚠️ Giriş Yapmalısınız</h2>
-                    <p>Bakiye yüklemek için önce hesabınıza giriş yapın</p>
-                    <a href="login.html">Giriş Yap</a>
+                    <h2>⚠️ Login Required</h2>
+                    <p>Please login to your account to add credit</p>
+                    <a href="login.html">Login</a>
                 </div>
             `;
             document.getElementById('userSection').innerHTML = `
-                <a href="login.html" style="color: #fff; text-decoration: none; background: linear-gradient(135deg, #667eea, #764ba2); padding: 10px 25px; border-radius: 10px; font-weight: 500;">Giriş Yap</a>
+                <a href="login.html" style="color: #fff; text-decoration: none; background: linear-gradient(135deg, #667eea, #764ba2); padding: 10px 25px; border-radius: 10px; font-weight: 500;">Login</a>
             `;
         }
 
@@ -623,15 +623,15 @@
                 <!-- Current Balance -->
                 <div class="balance-card">
                     <div class="balance-info">
-                        <h3>Mevcut Bakiyeniz</h3>
-                        <div class="balance-amount" id="currentBalance">₺${currentBalance.toLocaleString('tr-TR')}</div>
+                        <h3>Current Balance</h3>
+                        <div class="balance-amount" id="currentBalance">₺${currentBalance.toLocaleString('en-US')}</div>
                     </div>
                     <div class="balance-icon">💰</div>
                 </div>
 
                 <!-- Amount Selection -->
                 <div class="amount-section">
-                    <h3 class="section-title">💵 Yüklenecek Tutar</h3>
+                    <h3 class="section-title">💵 Select Amount</h3>
                     <div class="amount-grid">
                         <button class="amount-btn" onclick="selectAmount(100, this)">
                             <span class="value">100</span>
@@ -646,48 +646,48 @@
                             <span class="currency">TL</span>
                         </button>
                         <button class="amount-btn" onclick="selectAmount(1000, this)">
-                            <span class="value">1.000</span>
+                            <span class="value">1,000</span>
                             <span class="currency">TL</span>
                         </button>
                         <button class="amount-btn" onclick="selectAmount(2000, this)">
-                            <span class="value">2.000</span>
+                            <span class="value">2,000</span>
                             <span class="currency">TL</span>
                         </button>
                         <button class="amount-btn" onclick="selectAmount(5000, this)">
-                            <span class="value">5.000</span>
+                            <span class="value">5,000</span>
                             <span class="currency">TL</span>
                         </button>
                         <button class="amount-btn" onclick="selectAmount(10000, this)">
-                            <span class="value">10.000</span>
+                            <span class="value">10,000</span>
                             <span class="currency">TL</span>
                         </button>
                         <button class="amount-btn" onclick="selectAmount(20000, this)">
-                            <span class="value">20.000</span>
+                            <span class="value">20,000</span>
                             <span class="currency">TL</span>
                         </button>
                     </div>
                     <div class="custom-amount">
-                        <label>Özel Tutar:</label>
-                        <input type="number" id="customAmount" placeholder="Tutar girin (₺)" min="10" max="50000" oninput="handleCustomAmount(this)">
+                        <label>Custom Amount:</label>
+                        <input type="number" id="customAmount" placeholder="Enter amount (₺)" min="10" max="50000" oninput="handleCustomAmount(this)">
                     </div>
                 </div>
 
                 <!-- Payment Method -->
                 <div class="payment-section">
-                    <h3 class="section-title">💳 Ödeme Yöntemi</h3>
+                    <h3 class="section-title">💳 Payment Method</h3>
                     <div class="payment-methods">
                         <button class="payment-btn selected" onclick="selectPayment('CreditCard', this)">
                             <span class="payment-icon">💳</span>
                             <div class="payment-info">
-                                <h4>Kredi / Banka Kartı</h4>
-                                <p>Anında yükleme</p>
+                                <h4>Credit / Debit Card</h4>
+                                <p>Instant top-up</p>
                             </div>
                         </button>
                         <button class="payment-btn" onclick="selectPayment('BankTransfer', this)">
                             <span class="payment-icon">🏦</span>
                             <div class="payment-info">
-                                <h4>Havale / EFT</h4>
-                                <p>Banka transferi</p>
+                                <h4>Bank Transfer / EFT</h4>
+                                <p>Wire transfer</p>
                             </div>
                         </button>
                     </div>
@@ -696,7 +696,7 @@
                 <!-- Submit Button -->
                 <button class="submit-btn" id="submitBtn" onclick="loadCredit()" disabled>
                     <span>💰</span>
-                    <span id="submitBtnText">Tutar Seçin</span>
+                    <span id="submitBtnText">Select Amount</span>
                 </button>
             `;
         }
@@ -738,10 +738,10 @@
 
             if (selectedAmount >= 10) {
                 btn.disabled = false;
-                btnText.textContent = `₺${selectedAmount.toLocaleString('tr-TR')} Yükle`;
+                btnText.textContent = `Top Up ₺${selectedAmount.toLocaleString('en-US')}`;
             } else {
                 btn.disabled = true;
-                btnText.textContent = 'Tutar Seçin (min ₺10)';
+                btnText.textContent = 'Select Amount (min ₺10)';
             }
         }
 
@@ -751,7 +751,7 @@
             const btnText = document.getElementById('submitBtnText');
 
             btn.disabled = true;
-            btnText.textContent = 'Yükleniyor...';
+            btnText.textContent = 'Loading...';
 
             try {
                 const response = await fetch('/api/credit/add', {
@@ -778,8 +778,8 @@
 
                     // Update displays
                     currentBalance = newBalance;
-                    document.getElementById('currentBalance').textContent = `₺${newBalance.toLocaleString('tr-TR')}`;
-                    document.getElementById('headerBalance').textContent = `₺${newBalance.toLocaleString('tr-TR')}`;
+                    document.getElementById('currentBalance').textContent = `₺${newBalance.toLocaleString('en-US')}`;
+                    document.getElementById('headerBalance').textContent = `₺${newBalance.toLocaleString('en-US')}`;
 
                     // Reset selection
                     selectedAmount = 0;
@@ -787,21 +787,21 @@
                     document.getElementById('customAmount').value = '';
                     updateSubmitButton();
                 } else {
-                    alert('Hata: ' + (result.message || 'Bakiye yüklenemedi'));
+                    alert('Error: ' + (result.message || 'Failed to add credit'));
                     btn.disabled = false;
-                    btnText.textContent = `₺${selectedAmount.toLocaleString('tr-TR')} Yükle`;
+                    btnText.textContent = `Top Up ₺${selectedAmount.toLocaleString('en-US')}`;
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Bağlantı hatası. Lütfen tekrar deneyin.');
+                alert('Connection error. Please try again.');
                 btn.disabled = false;
-                btnText.textContent = `₺${selectedAmount.toLocaleString('tr-TR')} Yükle`;
+                btnText.textContent = `Top Up ₺${selectedAmount.toLocaleString('en-US')}`;
             }
         }
 
         // Show success modal
         function showSuccessModal(newBalance) {
-            document.getElementById('newBalanceDisplay').textContent = `₺${newBalance.toLocaleString('tr-TR')}`;
+            document.getElementById('newBalanceDisplay').textContent = `₺${newBalance.toLocaleString('en-US')}`;
             document.getElementById('successModal').classList.add('active');
         }
 
